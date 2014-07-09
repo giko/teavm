@@ -53,76 +53,110 @@ class JSObjectMethodVisitor extends MethodVisitor {
         AnnotationNode indexerAnnot = find(nodes, Type.getInternalName(JSIndexer.class));
         AnnotationNode consAnnot = find(nodes, Type.getInternalName(JSConstructor.class));
         if (propertyAnnot != null) {
-            if (isProperGetter(name, desc)) {
-                String propertyName = name.charAt(0) == 'i' ? cutPrefix(name, 2) : cutPrefix(name, 3);
-                mv.visitLdcInsn(propertyName);
-                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "get", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
-                        ";)L" + JSOBJECT_CLS + ";");
-                unwrap(Type.getReturnType(desc));
-            } else if (isProperSetter(name, desc)) {
-                wrap(Type.getArgumentTypes(desc)[0]);
-                mv.visitLdcInsn(cutPrefix(name, 3));
-                mv.visitInsn(Opcodes.SWAP);
-                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "set", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
-                        ";L" + JSOBJECT_CLS + ";)V");
-            } else {
-                throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
-                        "a proper native JavaScript property declaration");
-            }
+            emitProperty(owner, name, desc);
         } else if (indexerAnnot != null) {
-            if (isProperGetIndexer(desc)) {
-                Type[] params = Type.getArgumentTypes(desc);
-                wrap(params[0]);
-                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "get", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
-                        ";)L" + JSOBJECT_CLS + ";");
-                unwrap(Type.getReturnType(desc));
-            } else if (isProperSetIndexer(desc)) {
-                Type[] params = Type.getArgumentTypes(desc);
-                mv.visitInsn(Opcodes.SWAP);
-                wrap(params[0]);
-                mv.visitInsn(Opcodes.SWAP);
-                wrap(params[1]);
-                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "set", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
-                        ";L" + JSOBJECT_CLS + ";)V");
-            }
+            emitIndexer(desc);
         } else {
-            boolean isConstructor;
-            Type returnType = Type.getReturnType(desc);
+            emitInvocation(consAnnot, owner, name, desc);
+        }
+    }
+
+    private void emitProperty(String owner, String name, String desc) {
+        if (isProperGetter(name, desc)) {
+            String propertyName = name.charAt(0) == 'i' ? cutPrefix(name, 2) : cutPrefix(name, 3);
+            mv.visitLdcInsn(propertyName);
+            wrap(Type.getType(String.class));
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "get", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
+                    ";)L" + JSOBJECT_CLS + ";");
+            unwrap(Type.getReturnType(desc));
+        } else if (isProperSetter(name, desc)) {
+            wrap(Type.getArgumentTypes(desc)[0]);
+            mv.visitLdcInsn(cutPrefix(name, 3));
+            wrap(Type.getType(String.class));
+            mv.visitInsn(Opcodes.SWAP);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "set", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
+                    ";L" + JSOBJECT_CLS + ";)V");
+        } else {
+            throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
+                    "a proper native JavaScript property declaration");
+        }
+    }
+
+    private void emitIndexer(String desc) {
+        if (isProperGetIndexer(desc)) {
             Type[] params = Type.getArgumentTypes(desc);
-            if (consAnnot != null) {
-                if (!isSupportedType(returnType)) {
-                    throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
-                            "a proper native JavaScript constructor declaration");
-                }
-                String consName = (String)find(consAnnot, "value");
-                if (consName == null || consName.isEmpty()) {
-                    if (!consName.startsWith("new") || consName.length() == 3) {
-                        throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
-                                "declared as a native JavaScript constructor, but its name does " +
-                                "not satisfy conventions");
-                    }
-                    consName = name.substring(3);
-                }
-                name = consName;
-                isConstructor = true;
-            } else {
-                if (returnType.getSort() != Type.VOID && !isSupportedType(returnType)) {
-                    throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
-                            "a proper native JavaScript method declaration");
-                }
-                isConstructor = false;
+            wrap(params[0]);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "get", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
+                    ";)L" + JSOBJECT_CLS + ";");
+            unwrap(Type.getReturnType(desc));
+        } else if (isProperSetIndexer(desc)) {
+            Type[] params = Type.getArgumentTypes(desc);
+            mv.visitInsn(Opcodes.SWAP);
+            wrap(params[0]);
+            mv.visitInsn(Opcodes.SWAP);
+            wrap(params[1]);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "set", "(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS +
+                    ";L" + JSOBJECT_CLS + ";)V");
+        }
+    }
+
+    private void emitInvocation(AnnotationNode consAnnot, String owner, String name, String desc) {
+        boolean isConstructor;
+        Type returnType = Type.getReturnType(desc);
+        Type[] params = Type.getArgumentTypes(desc);
+        if (consAnnot != null) {
+            if (!isSupportedType(returnType)) {
+                throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
+                        "a proper native JavaScript constructor declaration");
             }
-            for (Type param : params) {
-                if (!isSupportedType(param)) {
+            String consName = (String)find(consAnnot, "value");
+            if (consName == null || consName.isEmpty()) {
+                if (!consName.startsWith("new") || consName.length() == 3) {
                     throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
-                            "a proper native JavaScript method or constructor declaration");
+                            "declared as a native JavaScript constructor, but its name does " +
+                            "not satisfy conventions");
                 }
+                consName = name.substring(3);
             }
-            int minLocal = locals.getMaxLocal(name, desc) + 1;
-            for (int i = params.length - 1; i >= 0; --i) {
-                mv.visitVarInsn(getStoreOpcode(params[i]), minLocal + i);
+            name = consName;
+            isConstructor = true;
+        } else {
+            if (returnType.getSort() != Type.VOID && !isSupportedType(returnType)) {
+                throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
+                        "a proper native JavaScript method declaration");
             }
-            wrap(Type.getObjectType("java/lang/Object"));
+            isConstructor = false;
+        }
+        for (Type param : params) {
+            if (!isSupportedType(param)) {
+                throw new RuntimeException("Method " + owner + "." + name + desc + " is not " +
+                        "a proper native JavaScript method or constructor declaration");
+            }
+        }
+        int minLocal = locals.getMaxLocal(name, desc) + 1;
+        int[] paramLocations = new int[params.length];
+        int lastParamLoc = minLocal;
+        for (int i = params.length - 1; i >= 0; --i) {
+            paramLocations[i] = lastParamLoc;
+            mv.visitVarInsn(getStoreOpcode(params[i]), lastParamLoc);
+            lastParamLoc += params[i].getSize();
+        }
+        wrap(Type.getObjectType("java/lang/Object"));
+        mv.visitLdcInsn(params);
+        wrap(Type.getType(String.class));
+        StringBuilder invokerDesc = new StringBuilder("(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS + ";");
+        for (int i = 0; i < params.length; ++i) {
+            mv.visitVarInsn(getLoadOpcode(params[i]), paramLocations[i]);
+            wrap(params[i]);
+            invokerDesc.append("L" + JSOBJECT_CLS + ";");
+        }
+        invokerDesc.append(")L" + JSOBJECT_CLS + ";");
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, isConstructor ? "instantiate" : "invoke",
+                invokerDesc.toString());
+        if (returnType.getSort() == Type.VOID) {
+            mv.visitInsn(Opcodes.POP);
+        } else {
+            unwrap(returnType);
         }
     }
 
@@ -143,6 +177,28 @@ class JSObjectMethodVisitor extends MethodVisitor {
             case Type.OBJECT:
             case Type.ARRAY:
                 return Opcodes.ASTORE;
+            default:
+                throw new AssertionError("Unknown type: " + type.getDescriptor());
+        }
+    }
+
+    private int getLoadOpcode(Type type) {
+        switch (type.getSort()) {
+            case Type.BOOLEAN:
+            case Type.BYTE:
+            case Type.CHAR:
+            case Type.SHORT:
+            case Type.INT:
+                return Opcodes.ILOAD;
+            case Type.LONG:
+                return Opcodes.LLOAD;
+            case Type.FLOAT:
+                return Opcodes.FLOAD;
+            case Type.DOUBLE:
+                return Opcodes.DLOAD;
+            case Type.OBJECT:
+            case Type.ARRAY:
+                return Opcodes.ALOAD;
             default:
                 throw new AssertionError("Unknown type: " + type.getDescriptor());
         }

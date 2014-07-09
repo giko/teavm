@@ -58,4 +58,10 @@ public interface JSHost {
     JSObject invoke(JSObject instance, JSObject method, JSObject[] arguments);
 
     JSObject instantiate(JSObject instance, JSObject method, JSObject[] arguments);
+
+    JSObject get(JSObject instance, JSObject index);
+
+    void set(JSObject instance, JSObject index, JSObject obj);
+
+    JSObject function(JSObject instance, JSObject property);
 }

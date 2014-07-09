@@ -14,7 +14,7 @@
     limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -22,10 +22,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
     <artifactId>teavm</artifactId>
     <version>0.2-SNAPSHOT</version>
   </parent>
-  <artifactId>teavm-jso</artifactId>
+  <artifactId>teavm-jso-devmode</artifactId>
 
-  <name>TeaVM JavaScript objects</name>
-  <description>A library that adds convenient interface for interaction between TeaVM and JavaScript code</description>
+  <name>TeaVM JavaScript objects DevMode</name>
+  <description>Development mode for JSO using remote browser control</description>
 
   <dependencies>
     <dependency>
@@ -35,16 +35,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm-debug-all</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.websocket</groupId>
-      <artifactId>javax.websocket-api</artifactId>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-jso</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
     </dependency>
   </dependencies>
 

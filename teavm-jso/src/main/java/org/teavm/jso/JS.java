@@ -184,74 +184,96 @@ public final class JS {
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c,
-            JSObject d) {
+    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c, JSObject d) {
         return JSHostAccessor.access().invoke(instance, method, new JSObject[] { a, b, c, d });
     }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c,
-            JSObject d, JSObject e) {
+    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c, JSObject d,
+            JSObject e) {
         return JSHostAccessor.access().invoke(instance, method, new JSObject[] { a, b, c, d, e });
     }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c,
-            JSObject d, JSObject e, JSObject f);
+    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c, JSObject d,
+            JSObject e, JSObject f) {
+        return JSHostAccessor.access().invoke(instance, method, new JSObject[] { a, b, c, d, e, f });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c,
-            JSObject d, JSObject e, JSObject f, JSObject g);
+    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c, JSObject d,
+            JSObject e, JSObject f, JSObject g) {
+        return JSHostAccessor.access().invoke(instance, method, new JSObject[] { a, b, c, d, e, f, g });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c,
-            JSObject d, JSObject e, JSObject f, JSObject g, JSObject h);
+    public static JSObject invoke(JSObject instance, JSObject method, JSObject a, JSObject b, JSObject c, JSObject d,
+            JSObject e, JSObject f, JSObject g, JSObject h) {
+        return JSHostAccessor.access().invoke(instance, method, new JSObject[] { a, b, c, d, e, f, g, h });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor);
+    public static JSObject instantiate(JSObject instance, JSObject constructor) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] {});
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c, JSObject d);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c,
+            JSObject d) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c, d });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c, JSObject d, JSObject e);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c,
+            JSObject d, JSObject e) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c, d, e });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c, JSObject d, JSObject e, JSObject f);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c,
+            JSObject d, JSObject e, JSObject f) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c, d, e, f });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c, JSObject d, JSObject e, JSObject f, JSObject g);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c,
+            JSObject d, JSObject e, JSObject f, JSObject g) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c, d, e, f, g });
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b,
-            JSObject c, JSObject d, JSObject e, JSObject f, JSObject g, JSObject h);
+    public static JSObject instantiate(JSObject instance, JSObject constructor, JSObject a, JSObject b, JSObject c,
+            JSObject d, JSObject e, JSObject f, JSObject g, JSObject h) {
+        return JSHostAccessor.access().instantiate(instance, constructor, new JSObject[] { a, b, c, d, e, f, g, h });
+    }
 
     public static <T extends JSObject> Iterable<T> iterate(final JSArray<T> array) {
         return new Iterable<T>() {
@@ -273,12 +295,18 @@ public final class JS {
     }
 
     @InjectedBy(JSNativeGenerator.class)
-    public static native JSObject get(JSObject instance, JSObject index);
+    public static JSObject get(JSObject instance, JSObject index) {
+        return JSHostAccessor.access().get(instance, index);
+    }
 
     @InjectedBy(JSNativeGenerator.class)
-    public static native void set(JSObject instance, JSObject index, JSObject obj);
+    public static void set(JSObject instance, JSObject index, JSObject obj) {
+        JSHostAccessor.access().set(instance, index, obj);
+    }
 
     @InjectedBy(JSNativeGenerator.class)
     @PluggableDependency(JSNativeGenerator.class)
-    public static native JSObject function(JSObject instance, JSObject property);
+    public static JSObject function(JSObject instance, JSObject property) {
+        return JSHostAccessor.access().function(instance, property);
+    }
 }
