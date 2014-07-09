@@ -15,25 +15,29 @@
  */
 package org.teavm.jso.bytecode;
 
-import org.objectweb.asm.*;
+import java.util.HashMap;
+import java.util.Map;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  *
  * @author Alexey Andreev
  */
-class JSObjectClassVisitor extends ClassVisitor {
-    private MetadataKeeper metadata;
-    private LocalVariableUsageAnalyzer locals;
+class LocalVariableUsageAnalyzer extends ClassVisitor {
+    private Map<String, Integer> map = new HashMap<>();
 
-    public JSObjectClassVisitor(int api, ClassVisitor cv, LocalVariableUsageAnalyzer locals, ClassLoader classLoader) {
-        super(api, cv);
-        this.metadata = new MetadataKeeper(classLoader);
-        this.locals = locals;
+    public LocalVariableUsageAnalyzer() {
+        super(Opcodes.ASM4);
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new JSObjectMethodVisitor(Opcodes.ASM4, cv.visitMethod(access, name, desc, signature, exceptions),
-                locals, metadata);
+        return new LocalVariableUsageMethodAnalyzer(map, name + desc);
+    }
+
+    public int getMaxLocal(String name, String desc) {
+        return map.get(name + desc);
     }
 }

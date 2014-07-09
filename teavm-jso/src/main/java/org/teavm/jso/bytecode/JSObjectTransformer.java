@@ -31,8 +31,11 @@ public class JSObjectTransformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
             ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         ClassReader classReader = new ClassReader(classfileBuffer);
+        LocalVariableUsageAnalyzer locals = new LocalVariableUsageAnalyzer();
+        classReader.accept(locals, 0);
+        classReader = new ClassReader(classfileBuffer);
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-        JSObjectClassVisitor visitor = new JSObjectClassVisitor(Opcodes.ASM4, classWriter, loader);
+        JSObjectClassVisitor visitor = new JSObjectClassVisitor(Opcodes.ASM4, classWriter, locals, loader);
         classReader.accept(visitor, 0);
         return classWriter.toByteArray();
     }

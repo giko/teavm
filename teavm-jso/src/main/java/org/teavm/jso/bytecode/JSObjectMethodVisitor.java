@@ -31,10 +31,13 @@ import org.teavm.jso.JSProperty;
 class JSObjectMethodVisitor extends MethodVisitor {
     private static final String JS_CLS = Type.getInternalName(JS.class);
     private static final String JSOBJECT_CLS = Type.getInternalName(JS.class);
+    private LocalVariableUsageAnalyzer locals;
     private MetadataKeeper metadata;
 
-    public JSObjectMethodVisitor(int api, MethodVisitor mv, MetadataKeeper metadata) {
+    public JSObjectMethodVisitor(int api, MethodVisitor mv, LocalVariableUsageAnalyzer locals,
+            MetadataKeeper metadata) {
         super(api, mv);
+        this.locals = locals;
         this.metadata = metadata;
     }
 
@@ -115,6 +118,33 @@ class JSObjectMethodVisitor extends MethodVisitor {
                             "a proper native JavaScript method or constructor declaration");
                 }
             }
+            int minLocal = locals.getMaxLocal(name, desc) + 1;
+            for (int i = params.length - 1; i >= 0; --i) {
+                mv.visitVarInsn(getStoreOpcode(params[i]), minLocal + i);
+            }
+            wrap(Type.getObjectType("java/lang/Object"));
+        }
+    }
+
+    private int getStoreOpcode(Type type) {
+        switch (type.getSort()) {
+            case Type.BOOLEAN:
+            case Type.BYTE:
+            case Type.CHAR:
+            case Type.SHORT:
+            case Type.INT:
+                return Opcodes.ISTORE;
+            case Type.LONG:
+                return Opcodes.LSTORE;
+            case Type.FLOAT:
+                return Opcodes.FSTORE;
+            case Type.DOUBLE:
+                return Opcodes.DSTORE;
+            case Type.OBJECT:
+            case Type.ARRAY:
+                return Opcodes.ASTORE;
+            default:
+                throw new AssertionError("Unknown type: " + type.getDescriptor());
         }
     }
 

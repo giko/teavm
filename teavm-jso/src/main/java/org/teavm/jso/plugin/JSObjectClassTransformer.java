@@ -15,10 +15,10 @@
  */
 package org.teavm.jso.plugin;
 
-import org.teavm.model.ClassHolder;
-import org.teavm.model.ClassHolderTransformer;
-import org.teavm.model.ClassReaderSource;
-import org.teavm.model.MethodHolder;
+import org.teavm.javascript.ni.GeneratedBy;
+import org.teavm.javascript.ni.InjectedBy;
+import org.teavm.jso.JS;
+import org.teavm.model.*;
 
 /**
  *
@@ -29,6 +29,17 @@ class JSObjectClassTransformer implements ClassHolderTransformer {
 
     @Override
     public void transformClass(ClassHolder cls, ClassReaderSource innerSource) {
+        if (cls.getName().equals(JS.class.getName())) {
+            for (MethodHolder method : cls.getMethods()) {
+                if (method.getAnnotations().get(InjectedBy.class.getName()) != null ||
+                        method.getAnnotations().get(GeneratedBy.class.getName()) != null) {
+                    method.getModifiers().add(ElementModifier.NATIVE);
+                    method.setProgram(null);
+                }
+            }
+            cls.removeMethod(null);
+            return;
+        }
         JavascriptNativeProcessor processor = getProcessor(innerSource);
         processor.processClass(cls);
         for (MethodHolder method : cls.getMethods()) {
