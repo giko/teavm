@@ -15,25 +15,30 @@
  */
 package org.teavm.jso.devmode;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public class JavaObjectRepository {
+    private AtomicInteger indexGenerator = new AtomicInteger();
+    private ConcurrentMap<JSObject, Integer> idMap = new ConcurrentHashMap<>();
 
-    public JSRemoteString(String value) {
-        this.value = value;
+    public int put(JSObject object) {
+        int id = indexGenerator.incrementAndGet();
+        idMap.put(object, id);
+        return id;
     }
 
-    public String getValue() {
-        return value;
+    public Integer getId(JSObject object) {
+        return idMap.get(object);
     }
 
-    @Override
-    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
-        visitor.visit(this);
+    public boolean contains(JSObject object) {
+        return idMap.containsKey(object);
     }
 }

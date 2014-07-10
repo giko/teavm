@@ -21,9 +21,14 @@ package org.teavm.jso.devmode;
  */
 public abstract class JSRemoteValue {
     public static final byte OBJECT = 0;
-    public static final byte NUMBER = 1;
-    public static final byte STRING = 2;
-    public static final byte BOOLEAN = 3;
+    public static final byte GLOBAL = 1;
+    public static final byte NUMBER = 2;
+    public static final byte INTEGER = 3;
+    public static final byte STRING = 4;
+    public static final byte BOOLEAN = 5;
+    public static final byte UNDEFINED = 6;
+    public static final byte NULL = 7;
+    public static final byte JAVA_OBJECT = 8;
 
     public abstract void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception;
 }

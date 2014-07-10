@@ -15,29 +15,26 @@
  */
 package org.teavm.jso.devmode;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.nio.ByteBuffer;
-
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class MessageSender {
-    private JSRemoteEndpoint endpoint;
-    private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    private DataOutputStream dataOut = new DataOutputStream(outputStream);
+public class JSRemoteException extends RuntimeException {
+    private static final long serialVersionUID = 4209581570238968035L;
 
-    public MessageSender(JSRemoteEndpoint endpoint) {
-        this.endpoint = endpoint;
+    public JSRemoteException() {
+        super();
     }
 
-    public DataOutput out() {
-        return dataOut;
+    public JSRemoteException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public void send() {
-        endpoint.session.getAsyncRemote().sendBinary(ByteBuffer.wrap(outputStream.toByteArray()));
+    public JSRemoteException(String message) {
+        super(message);
+    }
+
+    public JSRemoteException(Throwable cause) {
+        super(cause);
     }
 }

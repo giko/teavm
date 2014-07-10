@@ -19,17 +19,16 @@ import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public class JSGlobalObject extends JSRemoteValue implements JSObject {
+    private static JSGlobalObject instance = new JSGlobalObject();
 
-    public JSRemoteString(String value) {
-        this.value = value;
+    private JSGlobalObject() {
     }
 
-    public String getValue() {
-        return value;
+    public static JSGlobalObject getInstance() {
+        return instance;
     }
 
     @Override

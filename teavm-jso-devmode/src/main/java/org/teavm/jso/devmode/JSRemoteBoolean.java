@@ -19,17 +19,23 @@ import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public class JSRemoteBoolean extends JSRemoteValue implements JSObject {
+    public static final JSRemoteBoolean FALSE = new JSRemoteBoolean(false);
+    public static final JSRemoteBoolean TRUE = new JSRemoteBoolean(true);
+    private boolean value;
 
-    public JSRemoteString(String value) {
+    public JSRemoteBoolean(boolean value) {
         this.value = value;
     }
 
-    public String getValue() {
+    public boolean getValue() {
         return value;
+    }
+
+    public static JSRemoteBoolean valueOf(boolean value) {
+        return value ? TRUE : FALSE;
     }
 
     @Override

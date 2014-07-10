@@ -15,13 +15,9 @@
  */
 package org.teavm.jso.devmode;
 
-import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.ByteBuffer;
 import javax.websocket.ClientEndpoint;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
@@ -32,11 +28,7 @@ import javax.websocket.Session;
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
 @ClientEndpoint
-public class JSRemoteEndpoint {
-    public static final byte RECEIVE_VALUE = 0;
-    public static final byte CREATE_ARRAY = 1;
-    private final AtomicInteger messageIdGenerator = new AtomicInteger();
-    private ConcurrentMap<Integer, WaitingFuture> futures = new ConcurrentHashMap<>();
+public class JSRemoteEndpoint extends JSMessageExchange {
     Session session;
 
     @OnOpen
@@ -45,22 +37,13 @@ public class JSRemoteEndpoint {
     }
 
     @OnMessage
+    @Override
     public void receive(InputStream inputStream) throws IOException {
-        DataInput input = new DataInputStream(inputStream);
-        switch (input.readByte()) {
-            case RECEIVE_VALUE: {
-                int messageId = input.readInt();
-                int objectId = input.readInt();
-                futures.get(messageId).set(new JSRemoteObject(objectId));
-            }
-        }
+        super.receive(inputStream);
     }
 
-    public <T> void addFuture(int id, WaitingFuture future) {
-        futures.put(id, future);
-    }
-
-    public int generateMessageId() {
-        return messageIdGenerator.incrementAndGet();
+    @Override
+    public void send(byte[] bytes) {
+        session.getAsyncRemote().sendBinary(ByteBuffer.wrap(bytes));
     }
 }

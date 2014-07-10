@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class WaitingFuture {
     private volatile Object calculatedValue;
+    private volatile Exception exception;
     private volatile AtomicReference<CountDownLatch> latch = new AtomicReference<>(new CountDownLatch(1));
 
     public Object get() {
@@ -33,7 +34,14 @@ public class WaitingFuture {
                 latch.await();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return null;
+                throw new JSRemoteException(exception);
+            }
+        }
+        if (exception != null) {
+            if (exception instanceof RuntimeException) {
+                throw (RuntimeException)exception;
+            } else {
+                throw new JSRemoteException(exception);
             }
         }
         return calculatedValue;
@@ -48,6 +56,18 @@ public class WaitingFuture {
             throw new IllegalStateException("Future already calculated");
         }
         calculatedValue = value;
+        latch.countDown();
+    }
+
+    public void setException(Exception e) {
+        CountDownLatch latch = this.latch.get();
+        if (latch == null) {
+            throw new IllegalStateException("Future already calculated");
+        }
+        if (!this.latch.compareAndSet(latch, null)) {
+            throw new IllegalStateException("Future already calculated");
+        }
+        exception = e;
         latch.countDown();
     }
 }

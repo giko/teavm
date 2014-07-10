@@ -15,25 +15,10 @@
  */
 package org.teavm.jso.devmode;
 
-import org.teavm.jso.JSObject;
-
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
-
-    public JSRemoteString(String value) {
-        this.value = value;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
-        visitor.visit(this);
-    }
+public interface JSMessageSender {
+    void send(byte[] bytes);
 }

@@ -19,21 +19,21 @@ import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public class JSRemoteNumber extends JSRemoteValue implements JSObject {
+    private double value;
 
-    public JSRemoteString(String value) {
+    public JSRemoteNumber(double value) {
         this.value = value;
-    }
-
-    public String getValue() {
-        return value;
     }
 
     @Override
     public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
         visitor.visit(this);
+    }
+
+    public double getValue() {
+        return value;
     }
 }

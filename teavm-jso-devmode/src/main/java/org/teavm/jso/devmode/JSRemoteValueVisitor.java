@@ -22,5 +22,15 @@ package org.teavm.jso.devmode;
 public interface JSRemoteValueVisitor {
     void visit(JSRemoteString value) throws Exception;
 
+    void visit(JSRemoteNumber value) throws Exception;
+
+    void visit(JSRemoteBoolean value) throws Exception;
+
+    void visit(JSRemoteUndefined value) throws Exception;
+
+    void visit(JSRemoteNull value) throws Exception;
+
+    void visit(JSGlobalObject value) throws Exception;
+
     void visit(JSRemoteObject value) throws Exception;
 }

@@ -15,25 +15,28 @@
  */
 package org.teavm.jso.devmode;
 
-import org.teavm.jso.JSObject;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 
 /**
  *
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public class JSDataMessageSender {
+    private JSMessageSender exchange;
+    private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    private DataOutputStream dataOut = new DataOutputStream(outputStream);
 
-    public JSRemoteString(String value) {
-        this.value = value;
+    public JSDataMessageSender(JSMessageSender exchange) {
+        this.exchange = exchange;
     }
 
-    public String getValue() {
-        return value;
+    public DataOutput out() {
+        return dataOut;
     }
 
-    @Override
-    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
-        visitor.visit(this);
+    public void send() {
+        exchange.send(outputStream.toByteArray());
     }
 }
