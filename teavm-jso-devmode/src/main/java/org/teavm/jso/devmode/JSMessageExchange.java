@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.teavm.jso.JSObject;
 
 /**
  *
@@ -30,13 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class JSMessageExchange implements JSMessageSender {
     public static final byte RECEIVE_VALUE = 0;
     public static final byte RECEIVE_EXCEPTION = 1;
-    public static final byte CREATE_ARRAY = 2;
-    public static final byte GET_TYPE_NAME = 3;
-    public static final byte INVOKE_METHOD = 4;
-    public static final byte INSTANTIATE_CLASS = 5;
-    public static final byte GET_JAVA_OBJECT_INFO = 6;
-    public static final byte GET_PROPERTY = 7;
-    public static final byte SET_PROPERTY = 8;
+    public static final byte RECEIVE_JAVA_OBJECT_INFO = 2;
+    public static final byte CREATE_ARRAY = 3;
+    public static final byte GET_TYPE_NAME = 4;
+    public static final byte INVOKE_METHOD = 5;
+    public static final byte INSTANTIATE_CLASS = 6;
+    public static final byte GET_JAVA_OBJECT_INFO = 7;
+    public static final byte GET_PROPERTY = 8;
+    public static final byte SET_PROPERTY = 9;
     private final AtomicInteger messageIdGenerator = new AtomicInteger();
     private ConcurrentMap<Integer, WaitingFuture> futures = new ConcurrentHashMap<>();
     private JavaObjectRepository javaObjects = new JavaObjectRepository();
@@ -58,6 +60,8 @@ public abstract class JSMessageExchange implements JSMessageSender {
             }
             case GET_JAVA_OBJECT_INFO: {
                 int messageId = input.readInt();
+                int objectId = input.readInt();
+                JSObject obj = javaObjects.get(objectId);
                 break;
             }
         }

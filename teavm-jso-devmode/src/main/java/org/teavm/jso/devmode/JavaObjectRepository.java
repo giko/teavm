@@ -27,15 +27,21 @@ import org.teavm.jso.JSObject;
 public class JavaObjectRepository {
     private AtomicInteger indexGenerator = new AtomicInteger();
     private ConcurrentMap<JSObject, Integer> idMap = new ConcurrentHashMap<>();
+    private ConcurrentMap<Integer, JSObject> objectMap = new ConcurrentHashMap<>();
 
     public int put(JSObject object) {
         int id = indexGenerator.incrementAndGet();
         idMap.put(object, id);
+        objectMap.put(id, object);
         return id;
     }
 
     public Integer getId(JSObject object) {
         return idMap.get(object);
+    }
+
+    public JSObject get(int id) {
+        return objectMap.get(id);
     }
 
     public boolean contains(JSObject object) {
