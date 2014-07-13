@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.values;
 
 import org.teavm.jso.JSObject;
 
@@ -21,21 +21,14 @@ import org.teavm.jso.JSObject;
  *
  * @author Alexey Andreev
  */
-public class JSRemoteBoolean extends JSRemoteValue implements JSObject {
-    public static final JSRemoteBoolean FALSE = new JSRemoteBoolean(false);
-    public static final JSRemoteBoolean TRUE = new JSRemoteBoolean(true);
-    private boolean value;
+public class JSGlobalObject extends JSRemoteValue implements JSObject {
+    private static JSGlobalObject instance = new JSGlobalObject();
 
-    public JSRemoteBoolean(boolean value) {
-        this.value = value;
+    private JSGlobalObject() {
     }
 
-    public boolean getValue() {
-        return value;
-    }
-
-    public static JSRemoteBoolean valueOf(boolean value) {
-        return value ? TRUE : FALSE;
+    public static JSGlobalObject getInstance() {
+        return instance;
     }
 
     @Override

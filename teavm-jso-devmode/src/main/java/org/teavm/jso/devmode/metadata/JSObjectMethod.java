@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.metadata;
 
 import java.util.*;
 import org.teavm.jso.JSType;

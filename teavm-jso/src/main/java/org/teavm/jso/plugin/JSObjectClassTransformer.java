@@ -37,7 +37,6 @@ class JSObjectClassTransformer implements ClassHolderTransformer {
                     method.setProgram(null);
                 }
             }
-            cls.removeMethod(null);
             return;
         }
         JavascriptNativeProcessor processor = getProcessor(innerSource);

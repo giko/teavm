@@ -13,27 +13,22 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
-
-import java.lang.reflect.Method;
+package org.teavm.jso.devmode.values;
 
 /**
  *
- * @author Alexey Andreev
+ * @author Alexey Andreev <konsoletyper@gmail.com>
  */
-public class JSObjectProperty extends JSObjectMember {
-    Method getter;
-    Method setter;
+public interface JSRemoteValueVisitor {
+    void visit(JSRemoteString value) throws Exception;
 
-    JSObjectProperty(String name) {
-        super(name);
-    }
+    void visit(JSRemoteNumber value) throws Exception;
 
-    public Method getGetter() {
-        return getter;
-    }
+    void visit(JSRemoteBoolean value) throws Exception;
 
-    public Method getSetter() {
-        return setter;
-    }
+    void visit(JSRemoteUndefined value) throws Exception;
+
+    void visit(JSGlobalObject value) throws Exception;
+
+    void visit(JSRemoteObject value) throws Exception;
 }

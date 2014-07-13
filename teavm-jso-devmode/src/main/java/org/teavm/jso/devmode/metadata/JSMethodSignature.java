@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.metadata;
 
 import java.lang.reflect.Method;
 import org.teavm.jso.JSType;
@@ -24,10 +24,12 @@ import org.teavm.jso.JSType;
  */
 public class JSMethodSignature {
     private JSType[] arguments;
+    private JSType returnType;
     private Method javaMethod;
 
-    JSMethodSignature(JSType[] arguments, Method javaMethod) {
+    JSMethodSignature(JSType[] arguments, JSType returnType, Method javaMethod) {
         this.arguments = arguments;
+        this.returnType = returnType;
         this.javaMethod = javaMethod;
     }
 
@@ -41,6 +43,10 @@ public class JSMethodSignature {
 
     public JSType getArgument(int index) {
         return arguments[index];
+    }
+
+    public JSType getReturnType() {
+        return returnType;
     }
 
     public Method getJavaMethod() {

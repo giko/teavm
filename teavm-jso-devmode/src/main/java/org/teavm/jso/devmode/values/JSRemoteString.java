@@ -13,22 +13,23 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.values;
 
 import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev
+ * @author Alexey Andreev <konsoletyper@gmail.com>
  */
-public class JSRemoteNull extends JSRemoteValue implements JSObject {
-    private static JSRemoteNull instance = new JSRemoteNull();
+public class JSRemoteString extends JSRemoteValue implements JSObject {
+    private String value;
 
-    private JSRemoteNull() {
+    public JSRemoteString(String value) {
+        this.value = value;
     }
 
-    public static JSRemoteNull getInstance() {
-        return instance;
+    public String getValue() {
+        return value;
     }
 
     @Override

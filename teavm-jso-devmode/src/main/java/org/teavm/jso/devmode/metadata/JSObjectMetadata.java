@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.metadata;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -30,8 +30,10 @@ public class JSObjectMetadata {
     private List<JSObjectProperty> readonlyProperties = Collections.unmodifiableList(properties);
     private List<JSObjectMethod> methods = new ArrayList<>();
     private List<JSObjectMethod> readonlyMethods = Collections.unmodifiableList(methods);
+    int index;
 
     static {
+        jsTypeMap.put(void.class, JSType.UNDEFINED);
         jsTypeMap.put(boolean.class, JSType.BOOLEAN);
         jsTypeMap.put(byte.class, JSType.NUMBER);
         jsTypeMap.put(short.class, JSType.NUMBER);
@@ -41,11 +43,15 @@ public class JSObjectMetadata {
         jsTypeMap.put(String.class, JSType.STRING);
     }
 
-    public JSObjectMetadata(Class<? extends JSObject> cls) {
+    JSObjectMetadata(Class<? extends JSObject> cls) {
         Set<Class<?>> processedInterfaces = new HashSet<>();
         for (Class<?> iface : cls.getInterfaces()) {
             processInterface(iface, processedInterfaces);
         }
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     private void processInterface(Class<?> iface, Set<Class<?>> processedInteraces) {
@@ -88,7 +94,8 @@ public class JSObjectMetadata {
                 for (int i = 0; i < args.length; ++i) {
                     jsArgs[i] = asJSType(args[i]);
                 }
-                JSMethodSignature signature = new JSMethodSignature(jsArgs, method);
+                JSType returnType = asJSType(method.getReturnType());
+                JSMethodSignature signature = new JSMethodSignature(jsArgs, returnType, method);
                 jsMethod.getSignatures().add(signature);
                 merge(jsMethod);
             }
@@ -109,26 +116,39 @@ public class JSObjectMetadata {
         } else if (existing instanceof JSObjectMethod && member instanceof JSObjectProperty) {
             reportConflict((JSObjectProperty)member, (JSObjectMethod)existing);
         } else if (member instanceof JSObjectProperty) {
-            JSObjectProperty existingProperty = (JSObjectProperty)existing;
-            JSObjectProperty property = (JSObjectProperty)member;
-            if (property.getter != null) {
-                if (existingProperty.getter != null && !existingProperty.getter.getReturnType().equals(
-                        property.getter.getReturnType())) {
-                    throw new IllegalArgumentException("Conflict found between " + existingProperty.getter + " and " +
-                            property.getter);
-                }
-                existingProperty.getter = property.getter;
-            }
-            if (property.setter != null) {
-                if (existingProperty.setter != null && !existingProperty.setter.getParameterTypes()[0].equals(
-                        property.setter.getParameterTypes()[0])) {
-                    throw new IllegalArgumentException("Conflict found between " + existingProperty.setter + " and " +
-                            property.setter);
-                }
-                existingProperty.setter = property.setter;
-            }
+            mergeProperty((JSObjectProperty)existing, (JSObjectProperty)member);
         } else {
+            mergeMethod((JSObjectMethod)existing, (JSObjectMethod)member);
+        }
+    }
 
+    private void mergeProperty(JSObjectProperty existing, JSObjectProperty property) {
+        if (property.getter != null) {
+            if (existing.getter != null && !existing.getter.getReturnType().equals(
+                    property.getter.getReturnType())) {
+                throw new IllegalArgumentException("Conflict found between " + existing.getter + " and " +
+                        property.getter);
+            }
+            existing.getter = property.getter;
+        }
+        if (property.setter != null) {
+            if (existing.setter != null && !existing.setter.getParameterTypes()[0].equals(
+                    property.setter.getParameterTypes()[0])) {
+                throw new IllegalArgumentException("Conflict found between " + existing.setter + " and " +
+                        property.setter);
+            }
+            existing.setter = property.setter;
+        }
+    }
+
+    private void mergeMethod(JSObjectMethod existing, JSObjectMethod method) {
+        for (JSMethodSignature signature : method.getSignatures()) {
+            JSMethodSignature existingSignature = existing.getSignature(signature.getArguments());
+            if (existingSignature != null) {
+                throw new IllegalArgumentException("Conflict found between " + existingSignature.getJavaMethod() +
+                        " and " + signature.getJavaMethod());
+            }
+            existing.addSignature(signature);
         }
     }
 

@@ -13,24 +13,26 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.values;
+
+import org.teavm.jso.JSObject;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public interface JSRemoteValueVisitor {
-    void visit(JSRemoteString value) throws Exception;
+public class JSRemoteUndefined extends JSRemoteValue implements JSObject {
+    private static JSRemoteUndefined instance = new JSRemoteUndefined();
 
-    void visit(JSRemoteNumber value) throws Exception;
+    private JSRemoteUndefined() {
+    }
 
-    void visit(JSRemoteBoolean value) throws Exception;
+    public static JSRemoteUndefined getInstance() {
+        return instance;
+    }
 
-    void visit(JSRemoteUndefined value) throws Exception;
-
-    void visit(JSRemoteNull value) throws Exception;
-
-    void visit(JSGlobalObject value) throws Exception;
-
-    void visit(JSRemoteObject value) throws Exception;
+    @Override
+    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
+        visitor.visit(this);
+    }
 }

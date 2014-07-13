@@ -13,27 +13,20 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
-
-import org.teavm.jso.JSObject;
+package org.teavm.jso.devmode.metadata;
 
 /**
  *
- * @author Alexey Andreev <konsoletyper@gmail.com>
+ * @author Alexey Andreev
  */
-public class JSRemoteString extends JSRemoteValue implements JSObject {
-    private String value;
+public abstract class JSObjectMember {
+    private String name;
 
-    public JSRemoteString(String value) {
-        this.value = value;
+    public JSObjectMember(String name) {
+        this.name = name;
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
-        visitor.visit(this);
+    public String getName() {
+        return name;
     }
 }

@@ -18,6 +18,8 @@ package org.teavm.jso.devmode;
 import java.io.DataOutput;
 import java.io.IOException;
 import org.teavm.jso.JSObject;
+import org.teavm.jso.devmode.metadata.JSObjectMetadataRepository;
+import org.teavm.jso.devmode.values.*;
 
 /**
  *
@@ -25,15 +27,20 @@ import org.teavm.jso.JSObject;
  */
 public class JSRemoteValueSender implements JSRemoteValueVisitor {
     private DataOutput out;
-    private JavaObjectRepository repository;
+    private JavaObjectRepository javaObjects;
+    private JSObjectMetadataRepository javaClasses;
 
-    public JSRemoteValueSender(DataOutput out, JavaObjectRepository repository) {
+    public JSRemoteValueSender(DataOutput out, JavaObjectRepository javaObjects,
+            JSObjectMetadataRepository javaClasses) {
         this.out = out;
-        this.repository = repository;
+        this.javaObjects = javaObjects;
+        this.javaClasses = javaClasses;
     }
 
     public void send(JSObject value) throws IOException {
-        if (value instanceof JSRemoteValue) {
+        if (value == null) {
+            out.writeByte(JSRemoteValue.NULL);
+        } else if (value instanceof JSRemoteValue) {
             try {
                 ((JSRemoteValue)value).acceptVisitor(this);
             } catch (IOException e) {
@@ -43,7 +50,8 @@ public class JSRemoteValueSender implements JSRemoteValueVisitor {
             }
         } else {
             out.writeByte(JSRemoteValue.JAVA_OBJECT);
-            out.writeInt(repository.getId(value));
+            out.writeInt(javaObjects.getId(value));
+            out.writeInt(javaClasses.get(value.getClass()).getIndex());
         }
     }
 
@@ -73,11 +81,6 @@ public class JSRemoteValueSender implements JSRemoteValueVisitor {
     @Override
     public void visit(JSRemoteUndefined value) throws Exception {
         out.writeByte(JSRemoteValue.UNDEFINED);
-    }
-
-    @Override
-    public void visit(JSRemoteNull value) throws Exception {
-        out.writeByte(JSRemoteValue.NULL);
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.teavm.jso.devmode;
 import java.io.IOException;
 import org.teavm.jso.JSArray;
 import org.teavm.jso.JSObject;
+import org.teavm.jso.devmode.values.*;
 import org.teavm.jso.spi.JSHost;
 
 /**
@@ -69,8 +70,11 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public JSObject getTypeName(JSObject obj) {
+        if (obj == null) {
+            return new JSRemoteString("null");
+        }
         if (!(obj instanceof JSRemoteValue)) {
-            throw new IllegalArgumentException("This object is not ");
+            throw new IllegalArgumentException("This object is not a JavaScript object");
         }
         TypeExtractionVisitor visitor = new TypeExtractionVisitor();
         JSRemoteValue remoteValue = (JSRemoteValue)obj;
@@ -116,9 +120,6 @@ public class JSRemoteHost implements JSHost {
         }
         @Override public void visit(JSRemoteUndefined value) throws Exception {
             result = new JSRemoteString("undefined");
-        }
-        @Override public void visit(JSRemoteNull value) throws Exception {
-            result = new JSRemoteString("object");
         }
     }
 
@@ -219,6 +220,10 @@ public class JSRemoteHost implements JSHost {
         return obj instanceof JSRemoteUndefined;
     }
 
+    private JSRemoteValueSender createValueSender(JSDataMessageSender sender) {
+        return new JSRemoteValueSender(sender.out(), exchange.getJavaObjects(), exchange.getJavaClasses());
+    }
+
     @Override
     public JSObject invoke(JSObject instance, JSObject method, JSObject[] arguments) {
         if (!(instance instanceof JSRemoteValue)) {
@@ -228,13 +233,13 @@ public class JSRemoteHost implements JSHost {
             JSDataMessageSender sender = createSender();
             WaitingFuture response = new WaitingFuture();
             int messageId = exchange.addFuture(response);
-            JSRemoteValueSender valueSender = new JSRemoteValueSender(sender.out(), exchange.getJavaObjects());
+            JSRemoteValueSender valueSender = createValueSender(sender);
             try {
                 sender.out().writeByte(JSMessageExchange.INVOKE_METHOD);
                 sender.out().writeInt(messageId);
                 valueSender.send(instance);
                 valueSender.send(method);
-                sender.out().writeInt(arguments.length);
+                sender.out().writeByte((byte)arguments.length);
                 for (int i = 0; i < arguments.length; ++i) {
                     valueSender.send(arguments[i]);
                 }
@@ -254,7 +259,7 @@ public class JSRemoteHost implements JSHost {
             JSDataMessageSender sender = createSender();
             WaitingFuture response = new WaitingFuture();
             int messageId = exchange.addFuture(response);
-            JSRemoteValueSender valueSender = new JSRemoteValueSender(sender.out(), exchange.getJavaObjects());
+            JSRemoteValueSender valueSender = createValueSender(sender);
             try {
                 sender.out().writeByte(JSMessageExchange.INSTANTIATE_CLASS);
                 sender.out().writeInt(messageId);
@@ -281,7 +286,7 @@ public class JSRemoteHost implements JSHost {
             JSDataMessageSender sender = createSender();
             WaitingFuture response = new WaitingFuture();
             int messageId = exchange.addFuture(response);
-            JSRemoteValueSender valueSender = new JSRemoteValueSender(sender.out(), exchange.getJavaObjects());
+            JSRemoteValueSender valueSender = createValueSender(sender);
             try {
                 sender.out().writeByte(JSMessageExchange.INVOKE_METHOD);
                 sender.out().writeInt(messageId);
@@ -303,7 +308,7 @@ public class JSRemoteHost implements JSHost {
             JSDataMessageSender sender = createSender();
             WaitingFuture response = new WaitingFuture();
             int messageId = exchange.addFuture(response);
-            JSRemoteValueSender valueSender = new JSRemoteValueSender(sender.out(), exchange.getJavaObjects());
+            JSRemoteValueSender valueSender = createValueSender(sender);
             try {
                 sender.out().writeByte(JSMessageExchange.INVOKE_METHOD);
                 sender.out().writeInt(messageId);
@@ -319,6 +324,7 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public JSObject function(JSObject instance, JSObject property) {
+        // TODO: implement function wrapping
         return null;
     }
 }

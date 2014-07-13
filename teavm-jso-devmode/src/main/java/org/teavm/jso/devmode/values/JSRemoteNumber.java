@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.values;
 
 import org.teavm.jso.JSObject;
 
@@ -21,18 +21,19 @@ import org.teavm.jso.JSObject;
  *
  * @author Alexey Andreev
  */
-public class JSGlobalObject extends JSRemoteValue implements JSObject {
-    private static JSGlobalObject instance = new JSGlobalObject();
+public class JSRemoteNumber extends JSRemoteValue implements JSObject {
+    private double value;
 
-    private JSGlobalObject() {
-    }
-
-    public static JSGlobalObject getInstance() {
-        return instance;
+    public JSRemoteNumber(double value) {
+        this.value = value;
     }
 
     @Override
     public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
         visitor.visit(this);
+    }
+
+    public double getValue() {
+        return value;
     }
 }

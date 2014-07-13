@@ -13,22 +13,27 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.values;
+
+import org.teavm.jso.JSObject;
 
 /**
  *
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
-public abstract class JSRemoteValue {
-    public static final byte OBJECT = 0;
-    public static final byte GLOBAL = 1;
-    public static final byte NUMBER = 2;
-    public static final byte INTEGER = 3;
-    public static final byte STRING = 4;
-    public static final byte BOOLEAN = 5;
-    public static final byte UNDEFINED = 6;
-    public static final byte NULL = 7;
-    public static final byte JAVA_OBJECT = 8;
+public class JSRemoteObject extends JSRemoteValue implements JSObject {
+    private int id;
 
-    public abstract void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception;
+    public JSRemoteObject(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public void acceptVisitor(JSRemoteValueVisitor visitor) throws Exception {
+        visitor.visit(this);
+    }
 }

@@ -13,20 +13,27 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.teavm.jso.devmode;
+package org.teavm.jso.devmode.metadata;
+
+import java.lang.reflect.Method;
 
 /**
  *
  * @author Alexey Andreev
  */
-public abstract class JSObjectMember {
-    private String name;
+public class JSObjectProperty extends JSObjectMember {
+    Method getter;
+    Method setter;
 
-    public JSObjectMember(String name) {
-        this.name = name;
+    JSObjectProperty(String name) {
+        super(name);
     }
 
-    public String getName() {
-        return name;
+    public Method getGetter() {
+        return getter;
+    }
+
+    public Method getSetter() {
+        return setter;
     }
 }
