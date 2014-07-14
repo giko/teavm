@@ -66,6 +66,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <html4j.version>0.7.5</html4j.version>
+    <jetty.version>9.2.1.v20140609</jetty.version>
     <sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</sonatypeOssDistMgmtSnapshotsUrl>
   </properties>
 
@@ -80,6 +81,7 @@
     <module>teavm-platform</module>
     <module>teavm-cli</module>
     <module>teavm-jso-devmode</module>
+    <module>teavm-jso-devmode-launcher</module>
   </modules>
 
   <dependencyManagement>
@@ -139,6 +141,16 @@
         <groupId>javax.websocket</groupId>
         <artifactId>javax.websocket-api</artifactId>
         <version>1.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>javax-websocket-server-impl</artifactId>
+        <version>${jetty.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

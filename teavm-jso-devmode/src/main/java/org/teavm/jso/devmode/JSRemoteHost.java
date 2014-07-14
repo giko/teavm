@@ -30,7 +30,7 @@ public class JSRemoteHost implements JSHost {
     private JSMessageExchange exchange;
 
     public JSRemoteHost() {
-        if (instance == null) {
+        if (instance != null) {
             throw new IllegalStateException("Only one instance can be created");
         }
         instance = this;
@@ -54,7 +54,7 @@ public class JSRemoteHost implements JSHost {
     @Override
     public <T extends JSObject> JSArray<T> createArray(int size) {
         JSDataMessageSender sender = createSender();
-        WaitingFuture response = new WaitingFuture();
+        WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
         int messageId = exchange.addFuture(response);
         try {
             sender.out().writeByte(JSRemoteEndpoint.CREATE_ARRAY);
@@ -94,7 +94,7 @@ public class JSRemoteHost implements JSHost {
         @Override
         public void visit(JSRemoteObject value) throws Exception {
             JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture();
+            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
             int messageId = exchange.addFuture(response);
             try {
                 sender.out().writeByte(JSRemoteEndpoint.CREATE_ARRAY);
@@ -231,7 +231,7 @@ public class JSRemoteHost implements JSHost {
             return null;
         } else {
             JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture();
+            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {
@@ -257,7 +257,7 @@ public class JSRemoteHost implements JSHost {
             throw new RuntimeException("Can't call non-JavaScript constructor");
         } else {
             JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture();
+            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {
@@ -284,7 +284,7 @@ public class JSRemoteHost implements JSHost {
             return null;
         } else {
             JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture();
+            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {
@@ -306,7 +306,7 @@ public class JSRemoteHost implements JSHost {
             // TODO: handle invocation of
         } else {
             JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture();
+            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {

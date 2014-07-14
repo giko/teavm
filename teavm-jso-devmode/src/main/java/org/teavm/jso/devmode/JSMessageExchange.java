@@ -50,6 +50,11 @@ public abstract class JSMessageExchange implements JSMessageSender {
     private ConcurrentMap<Integer, WaitingFuture> futures = new ConcurrentHashMap<>();
     private JavaObjectRepository javaObjects = new JavaObjectRepository();
     private JSObjectMetadataRepository javaClasses = new JSObjectMetadataRepository();
+    private EventQueue eventQueue = new EventQueue();
+
+    public void init() {
+        JSRemoteHost.getInstance().setExchange(this);
+    }
 
     public void receive(InputStream inputStream) throws IOException {
         DataInput input = new DataInputStream(inputStream);
@@ -83,17 +88,30 @@ public abstract class JSMessageExchange implements JSMessageSender {
                 for (int i = 0; i < arguments.length; ++i) {
                     arguments[i] = valueReceiver.receive();
                 }
-                JSObject result = invokeJavaMethod(instance, method, arguments);
-
-                JSDataMessageSender messageSender = new JSDataMessageSender(this);
-                JSRemoteValueSender valueSender = new JSRemoteValueSender(messageSender.out(),
-                        javaObjects, javaClasses);
-                messageSender.out().writeByte(RECEIVE_VALUE);
-                messageSender.out().writeInt(messageId);
-                valueSender.send(result);
-                messageSender.send();
+                invokeJavaMethodAndSendResponse(messageId, instance, method, arguments);
             }
         }
+    }
+
+    private void invokeJavaMethodAndSendResponse(final int messageId, final JSObject instance, final JSObject method,
+            final JSObject[] arguments) {
+        eventQueue.put(new Runnable() {
+            @Override public void run() {
+                try {
+                    JSObject result = invokeJavaMethod(instance, method, arguments);
+
+                    JSDataMessageSender messageSender = new JSDataMessageSender(JSMessageExchange.this);
+                    JSRemoteValueSender valueSender = new JSRemoteValueSender(messageSender.out(),
+                            javaObjects, javaClasses);
+                    messageSender.out().writeByte(RECEIVE_VALUE);
+                    messageSender.out().writeInt(messageId);
+                    valueSender.send(result);
+                    messageSender.send();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
     }
 
     public JSObject invokeJavaMethod(JSObject instance, JSObject method, JSObject[] arguments) {
@@ -221,5 +239,9 @@ public abstract class JSMessageExchange implements JSMessageSender {
 
     public JSObjectMetadataRepository getJavaClasses() {
         return javaClasses;
+    }
+
+    public EventQueue getEventQueue() {
+        return eventQueue;
     }
 }

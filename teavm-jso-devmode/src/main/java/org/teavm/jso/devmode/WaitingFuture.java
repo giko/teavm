@@ -15,8 +15,7 @@
  */
 package org.teavm.jso.devmode;
 
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  *
@@ -25,17 +24,16 @@ import java.util.concurrent.atomic.AtomicReference;
 public class WaitingFuture {
     private volatile Object calculatedValue;
     private volatile Exception exception;
-    private volatile AtomicReference<CountDownLatch> latch = new AtomicReference<>(new CountDownLatch(1));
+    private AtomicBoolean calculated = new AtomicBoolean();
+    private EventQueue eventQueue;
+
+    public WaitingFuture(EventQueue eventQueue) {
+        this.eventQueue = eventQueue;
+    }
 
     public Object get() {
-        CountDownLatch latch = this.latch.get();
-        if (latch != null) {
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new JSRemoteException(exception);
-            }
+        while (!calculated.get()) {
+            eventQueue.exec();
         }
         if (exception != null) {
             if (exception instanceof RuntimeException) {
@@ -48,26 +46,18 @@ public class WaitingFuture {
     }
 
     public void set(Object value) {
-        CountDownLatch latch = this.latch.get();
-        if (latch == null) {
-            throw new IllegalStateException("Future already calculated");
-        }
-        if (!this.latch.compareAndSet(latch, null)) {
+        if (!calculated.compareAndSet(false, true)) {
             throw new IllegalStateException("Future already calculated");
         }
         calculatedValue = value;
-        latch.countDown();
+        eventQueue.stop();
     }
 
     public void setException(Exception e) {
-        CountDownLatch latch = this.latch.get();
-        if (latch == null) {
-            throw new IllegalStateException("Future already calculated");
-        }
-        if (!this.latch.compareAndSet(latch, null)) {
+        if (!calculated.compareAndSet(false, true)) {
             throw new IllegalStateException("Future already calculated");
         }
         exception = e;
-        latch.countDown();
+        eventQueue.stop();
     }
 }

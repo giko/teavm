@@ -17,23 +17,32 @@ package org.teavm.jso.devmode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import javax.websocket.ClientEndpoint;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
 
 /**
  *
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
-@ClientEndpoint
+@ServerEndpoint("/")
 public class JSRemoteEndpoint extends JSMessageExchange {
+    private static Class<?> mainClass;
     Session session;
 
+    public static void setMainClass(Class<?> mainClass) {
+        JSRemoteEndpoint.mainClass = mainClass;
+    }
+
     @OnOpen
-    public void open(Session session) {
+    public void open(Session session) throws ReflectiveOperationException {
         this.session = session;
+        init();
+        Method method = mainClass.getMethod("main", String[].class);
+        method.invoke(null, new Object[] { new String[0] });
     }
 
     @OnMessage
