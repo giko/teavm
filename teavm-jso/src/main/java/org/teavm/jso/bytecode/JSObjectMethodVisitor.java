@@ -33,12 +33,25 @@ class JSObjectMethodVisitor extends MethodVisitor {
     private static final String JSOBJECT_CLS = Type.getInternalName(JS.class);
     private LocalVariableUsageAnalyzer locals;
     private MetadataKeeper metadata;
+    private Type[] arguments;
+    private int access;
 
-    public JSObjectMethodVisitor(int api, MethodVisitor mv, LocalVariableUsageAnalyzer locals,
-            MetadataKeeper metadata) {
+    public JSObjectMethodVisitor(int api, MethodVisitor mv, Type[] arguments, int access,
+            LocalVariableUsageAnalyzer locals, MetadataKeeper metadata) {
         super(api, mv);
+        this.arguments = arguments;
         this.locals = locals;
         this.metadata = metadata;
+        this.access = access;
+    }
+
+    @Override
+    public void visitCode() {
+        int offset = (access & Opcodes.ACC_STATIC) != 0 ? 0 : 1;
+        for (int i = 0; i < arguments.length; ++i) {
+
+        }
+        super.visitCode();
     }
 
     @Override
@@ -58,6 +71,17 @@ class JSObjectMethodVisitor extends MethodVisitor {
             emitIndexer(desc);
         } else {
             emitInvocation(consAnnot, owner, name, desc);
+        }
+    }
+
+    @Override
+    public void visitTypeInsn(int opcode, String type) {
+        if (opcode != Opcodes.CHECKCAST) {
+            super.visitTypeInsn(opcode, type);
+        }
+        ClassMetadata clsMeta = metadata.getClassMetadata(type);
+        if (!clsMeta.javaScriptObject) {
+            super.visitTypeInsn(opcode, type);
         }
     }
 
@@ -252,7 +276,9 @@ class JSObjectMethodVisitor extends MethodVisitor {
 
     private void wrap(Type type) {
         if (type.getSort() == Type.OBJECT && !type.getInternalName().equals("java/lang/String")) {
-            return;
+            mv.visitLdcInsn(type);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast", "(L" + JSOBJECT_CLS + ";Ljava/lang/Class;)" +
+                    "L" + JSOBJECT_CLS + ";");
         }
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "wrap", "(" + type.getDescriptor() + ")" +
                 "L" + JSOBJECT_CLS + ";");

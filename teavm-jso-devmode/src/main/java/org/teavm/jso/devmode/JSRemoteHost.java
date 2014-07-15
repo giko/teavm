@@ -16,6 +16,8 @@
 package org.teavm.jso.devmode;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import org.teavm.jso.JSArray;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.devmode.values.*;
@@ -227,8 +229,7 @@ public class JSRemoteHost implements JSHost {
     @Override
     public JSObject invoke(JSObject instance, JSObject method, JSObject[] arguments) {
         if (!(instance instanceof JSRemoteValue)) {
-            // TODO: handle invocation of
-            return null;
+            return exchange.invokeJavaMethod(instance, method, arguments);
         } else {
             JSDataMessageSender sender = createSender();
             WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
@@ -326,5 +327,26 @@ public class JSRemoteHost implements JSHost {
     public JSObject function(JSObject instance, JSObject property) {
         // TODO: implement function wrapping
         return null;
+    }
+
+    @Override
+    public <T extends JSObject> T cast(JSObject obj, Class<T> type) {
+        obj = uncast(obj);
+        @SuppressWarnings("unchecked")
+        T safeResult = (T)Proxy.newProxyInstance(JSRemoteHost.class.getClassLoader(),
+                new Class<?>[] { type }, new JSObjectProxy(obj));
+        return safeResult;
+    }
+
+    @Override
+    public JSObject uncast(JSObject obj) {
+        if (!Proxy.isProxyClass(obj.getClass())) {
+            return obj;
+        }
+        InvocationHandler handler = Proxy.getInvocationHandler(obj);
+        if (!(handler instanceof JSObjectProxy)) {
+            return obj;
+        }
+        return ((JSObjectProxy)handler).getInnerObject();
     }
 }

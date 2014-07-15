@@ -309,4 +309,16 @@ public final class JS {
     public static JSObject function(JSObject instance, JSObject property) {
         return JSHostAccessor.access().function(instance, property);
     }
+
+    @InjectedBy(JSNativeGenerator.class)
+    @PluggableDependency(JSNativeGenerator.class)
+    public static <T extends JSObject> T cast(JSObject obj, Class<T> type) {
+        return JSHostAccessor.access().cast(obj, type);
+    }
+
+    @InjectedBy(JSNativeGenerator.class)
+    @PluggableDependency(JSNativeGenerator.class)
+    public static JSObject uncast(JSObject obj) {
+        return JSHostAccessor.access().uncast(obj);
+    }
 }

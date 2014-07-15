@@ -33,7 +33,8 @@ class JSObjectClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+        Type[] arguments = Type.getArgumentTypes(desc);
         return new JSObjectMethodVisitor(Opcodes.ASM4, cv.visitMethod(access, name, desc, signature, exceptions),
-                locals, metadata);
+                arguments, access, locals, metadata);
     }
 }

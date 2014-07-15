@@ -64,4 +64,8 @@ public interface JSHost {
     void set(JSObject instance, JSObject index, JSObject obj);
 
     JSObject function(JSObject instance, JSObject property);
+
+    <T extends JSObject> T cast(JSObject obj, Class<T> type);
+
+    JSObject uncast(JSObject obj);
 }
