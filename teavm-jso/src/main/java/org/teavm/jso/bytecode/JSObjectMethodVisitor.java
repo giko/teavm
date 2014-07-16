@@ -34,12 +34,14 @@ class JSObjectMethodVisitor extends MethodVisitor {
     private LocalVariableUsageAnalyzer locals;
     private MetadataKeeper metadata;
     private Type[] arguments;
+    private Type returnType;
     private int access;
 
-    public JSObjectMethodVisitor(int api, MethodVisitor mv, Type[] arguments, int access,
+    public JSObjectMethodVisitor(int api, MethodVisitor mv, Type[] arguments, Type returnType, int access,
             LocalVariableUsageAnalyzer locals, MetadataKeeper metadata) {
         super(api, mv);
         this.arguments = arguments;
+        this.returnType = returnType;
         this.locals = locals;
         this.metadata = metadata;
         this.access = access;
@@ -49,7 +51,18 @@ class JSObjectMethodVisitor extends MethodVisitor {
     public void visitCode() {
         int offset = (access & Opcodes.ACC_STATIC) != 0 ? 0 : 1;
         for (int i = 0; i < arguments.length; ++i) {
-
+            Type arg = arguments[i];
+            if (arg.getSort() != Type.OBJECT) {
+                continue;
+            }
+            ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
+            if (!argMeta.isJavaScriptObject()) {
+                continue;
+            }
+            mv.visitVarInsn(Opcodes.ALOAD, i + offset);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "uncast", "(L" + JSOBJECT_CLS + ";)L" +
+                    JSOBJECT_CLS + ";");
+            mv.visitVarInsn(Opcodes.ASTORE, i + offset);
         }
         super.visitCode();
     }
@@ -58,19 +71,52 @@ class JSObjectMethodVisitor extends MethodVisitor {
     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
         ClassMetadata ownerData = metadata.getClassMetadata(owner);
         if (!ownerData.isJavaScriptObject()) {
+            Type[] args = Type.getArgumentTypes(desc);
+            for (int i = 0; i < arguments.length; ++i) {
+                Type arg = arguments[i];
+                if (arg.getSort() != Type.OBJECT) {
+                    continue;
+                }
+                ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
+                if (!argMeta.isJavaScriptObject()) {
+                    continue;
+                }
+            }
             super.visitMethodInsn(opcode, owner, name, desc);
             return;
-        }
-        AnnotationNode[] nodes = ownerData.getMethodAnnotations(name, desc);
-        AnnotationNode propertyAnnot = find(nodes, Type.getInternalName(JSProperty.class));
-        AnnotationNode indexerAnnot = find(nodes, Type.getInternalName(JSIndexer.class));
-        AnnotationNode consAnnot = find(nodes, Type.getInternalName(JSConstructor.class));
-        if (propertyAnnot != null) {
-            emitProperty(owner, name, desc);
-        } else if (indexerAnnot != null) {
-            emitIndexer(desc);
         } else {
-            emitInvocation(consAnnot, owner, name, desc);
+            AnnotationNode[] nodes = ownerData.getMethodAnnotations(name, desc);
+            AnnotationNode propertyAnnot = find(nodes, Type.getInternalName(JSProperty.class));
+            AnnotationNode indexerAnnot = find(nodes, Type.getInternalName(JSIndexer.class));
+            AnnotationNode consAnnot = find(nodes, Type.getInternalName(JSConstructor.class));
+            if (propertyAnnot != null) {
+                emitProperty(owner, name, desc);
+            } else if (indexerAnnot != null) {
+                emitIndexer(desc);
+            } else {
+                emitInvocation(consAnnot, owner, name, desc);
+            }
+        }
+    }
+
+    @Override
+    public void visitInsn(int opcode) {
+        if (opcode == Opcodes.ARETURN) {
+            if (returnType.getSort() != Type.OBJECT) {
+                super.visitInsn(opcode);
+                return;
+            }
+            ClassMetadata returnMeta = metadata.getClassMetadata(returnType.getInternalName());
+            if (!returnMeta.isJavaScriptObject()) {
+                super.visitInsn(opcode);
+                return;
+            }
+            mv.visitLdcInsn(returnType);
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast", "(L" + JSOBJECT_CLS + ";Ljava/lang/Class;)L" +
+                    JSOBJECT_CLS + ";");
+            super.visitInsn(opcode);
+        } else {
+            super.visitInsn(opcode);
         }
     }
 
