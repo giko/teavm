@@ -17,10 +17,13 @@ package org.teavm.jso.devmode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.lang.instrument.IllegalClassFormatException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.util.CheckClassAdapter;
 import org.teavm.jso.bytecode.JSObjectTransformer;
 
 /**
@@ -40,25 +43,31 @@ public class JSAwareClassLoader extends ClassLoader {
     }
 
     @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         for (String packageName : packagesToInstrument) {
             if (name.startsWith(packageName)) {
-                byte[] bytes;
-                try {
-                    InputStream input = getResourceAsStream(name.replace('.', '/') + ".class");
-                    bytes = IOUtils.toByteArray(input);
-                    byte[] transformedBytes = transformer.transform(this, name, null, null, bytes);
-                    if (transformedBytes != null) {
-                        bytes = transformedBytes;
-                    }
-                } catch (IOException e) {
-                    throw new ClassNotFoundException("IO error occured finding class " + name, e);
-                } catch (IllegalClassFormatException e) {
-                    throw new ClassNotFoundException("Error transforming class " + name, e);
-                }
-                return defineClass(packageName, bytes, 0, bytes.length);
+                return findClass(name);
             }
         }
-        return super.findClass(name);
+        return super.loadClass(name, resolve);
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        byte[] bytes;
+        try {
+            InputStream input = getResourceAsStream(name.replace('.', '/') + ".class");
+            bytes = IOUtils.toByteArray(input);
+            byte[] transformedBytes = transformer.transform(this, name, null, null, bytes);
+            if (transformedBytes != null) {
+                CheckClassAdapter.verify(new ClassReader(transformedBytes), true, new PrintWriter(System.err));
+                bytes = transformedBytes;
+            }
+        } catch (IOException e) {
+            throw new ClassNotFoundException("IO error occured finding class " + name, e);
+        } catch (IllegalClassFormatException e) {
+            throw new ClassNotFoundException("Error transforming class " + name, e);
+        }
+        return defineClass(name, bytes, 0, bytes.length);
     }
 }

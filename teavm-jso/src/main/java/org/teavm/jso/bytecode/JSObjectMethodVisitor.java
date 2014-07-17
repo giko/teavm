@@ -19,10 +19,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
-import org.teavm.jso.JS;
-import org.teavm.jso.JSConstructor;
-import org.teavm.jso.JSIndexer;
-import org.teavm.jso.JSProperty;
+import org.teavm.jso.*;
 
 /**
  *
@@ -30,18 +27,23 @@ import org.teavm.jso.JSProperty;
  */
 class JSObjectMethodVisitor extends MethodVisitor {
     private static final String JS_CLS = Type.getInternalName(JS.class);
-    private static final String JSOBJECT_CLS = Type.getInternalName(JS.class);
+    private static final String JSOBJECT_CLS = Type.getInternalName(JSObject.class);
     private LocalVariableUsageAnalyzer locals;
     private MetadataKeeper metadata;
     private Type[] arguments;
     private Type returnType;
+    private String currentName;
+    private String currentDesc;
     private int access;
+    private int additionalLocals;
 
-    public JSObjectMethodVisitor(int api, MethodVisitor mv, Type[] arguments, Type returnType, int access,
+    public JSObjectMethodVisitor(int api, MethodVisitor mv, String name, String desc, int access,
             LocalVariableUsageAnalyzer locals, MetadataKeeper metadata) {
         super(api, mv);
-        this.arguments = arguments;
-        this.returnType = returnType;
+        currentName = name;
+        currentDesc = desc;
+        this.arguments = Type.getArgumentTypes(desc);
+        this.returnType = Type.getReturnType(desc);
         this.locals = locals;
         this.metadata = metadata;
         this.access = access;
@@ -49,6 +51,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitCode() {
+        additionalLocals = 0;
         int offset = (access & Opcodes.ACC_STATIC) != 0 ? 0 : 1;
         for (int i = 0; i < arguments.length; ++i) {
             Type arg = arguments[i];
@@ -56,7 +59,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
                 continue;
             }
             ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
-            if (!argMeta.isJavaScriptObject()) {
+            if (!argMeta.isJavaScriptObject() || arg.getInternalName().equals(JSOBJECT_CLS)) {
                 continue;
             }
             mv.visitVarInsn(Opcodes.ALOAD, i + offset);
@@ -71,19 +74,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
         ClassMetadata ownerData = metadata.getClassMetadata(owner);
         if (!ownerData.isJavaScriptObject()) {
-            Type[] args = Type.getArgumentTypes(desc);
-            for (int i = 0; i < arguments.length; ++i) {
-                Type arg = arguments[i];
-                if (arg.getSort() != Type.OBJECT) {
-                    continue;
-                }
-                ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
-                if (!argMeta.isJavaScriptObject()) {
-                    continue;
-                }
-            }
-            super.visitMethodInsn(opcode, owner, name, desc);
-            return;
+            emitMethodInvocation(opcode, owner, name, desc);
         } else {
             AnnotationNode[] nodes = ownerData.getMethodAnnotations(name, desc);
             AnnotationNode propertyAnnot = find(nodes, Type.getInternalName(JSProperty.class));
@@ -99,6 +90,56 @@ class JSObjectMethodVisitor extends MethodVisitor {
         }
     }
 
+    private void emitMethodInvocation(int opcode, String owner, String name, String desc) {
+        Type[] args = Type.getArgumentTypes(desc);
+        boolean shouldWrap = false;
+        for (int i = 0; i < args.length; ++i) {
+            Type arg = args[i];
+            if (arg.getSort() != Type.OBJECT) {
+                continue;
+            }
+            ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
+            if (argMeta.isJavaScriptObject() && !arg.getInternalName().equals(JSOBJECT_CLS)) {
+                shouldWrap = true;
+                break;
+            }
+        }
+        if (shouldWrap) {
+            int minLocal = locals.getMaxLocal(currentName, currentDesc) + 1;
+            int[] paramLocations = new int[args.length];
+            int lastParamLoc = minLocal;
+            for (int i = args.length - 1; i >= 0; --i) {
+                Type arg = args[i];
+                paramLocations[i] = lastParamLoc;
+                mv.visitVarInsn(getStoreOpcode(arg), lastParamLoc);
+                lastParamLoc += arg.getSize();
+            }
+            additionalLocals = Math.max(additionalLocals, lastParamLoc);
+            for (int i = 0; i < args.length; ++i) {
+                Type arg = args[i];
+                mv.visitVarInsn(getLoadOpcode(arg), paramLocations[i]);
+                if (arg.getSort() != Type.OBJECT) {
+                    continue;
+                }
+                ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
+                if (argMeta.isJavaScriptObject() && !arg.getInternalName().equals(JSOBJECT_CLS)) {
+                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast",
+                            "(L" + JSOBJECT_CLS + ";Ljava/lang/Class;)" + "L" + JSOBJECT_CLS + ";");
+                }
+            }
+        }
+        super.visitMethodInsn(opcode, owner, name, desc);
+
+        Type returnType = Type.getReturnType(desc);
+        if (returnType.getSort() == Type.OBJECT) {
+            ClassMetadata returnMeta = metadata.getClassMetadata(returnType.getInternalName());
+            if (returnMeta.isJavaScriptObject() &&  !returnType.getInternalName().equals(JSOBJECT_CLS)) {
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "uncast",
+                        "(L" + JSOBJECT_CLS + ";)" + "L" + JSOBJECT_CLS + ";");
+            }
+        }
+    }
+
     @Override
     public void visitInsn(int opcode) {
         if (opcode == Opcodes.ARETURN) {
@@ -107,7 +148,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
                 return;
             }
             ClassMetadata returnMeta = metadata.getClassMetadata(returnType.getInternalName());
-            if (!returnMeta.isJavaScriptObject()) {
+            if (!returnMeta.isJavaScriptObject() || returnType.getInternalName().equals(JSOBJECT_CLS)) {
                 super.visitInsn(opcode);
                 return;
             }
@@ -124,10 +165,12 @@ class JSObjectMethodVisitor extends MethodVisitor {
     public void visitTypeInsn(int opcode, String type) {
         if (opcode != Opcodes.CHECKCAST) {
             super.visitTypeInsn(opcode, type);
+            return;
         }
         ClassMetadata clsMeta = metadata.getClassMetadata(type);
-        if (!clsMeta.javaScriptObject) {
+        if (!clsMeta.isJavaScriptObject()) {
             super.visitTypeInsn(opcode, type);
+            return;
         }
     }
 
@@ -203,7 +246,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
                         "a proper native JavaScript method or constructor declaration");
             }
         }
-        int minLocal = locals.getMaxLocal(name, desc) + 1;
+        int minLocal = locals.getMaxLocal(currentName, currentDesc) + 1;
         int[] paramLocations = new int[params.length];
         int lastParamLoc = minLocal;
         for (int i = params.length - 1; i >= 0; --i) {
@@ -211,8 +254,9 @@ class JSObjectMethodVisitor extends MethodVisitor {
             mv.visitVarInsn(getStoreOpcode(params[i]), lastParamLoc);
             lastParamLoc += params[i].getSize();
         }
+        additionalLocals = Math.max(additionalLocals, lastParamLoc);
         wrap(Type.getObjectType("java/lang/Object"));
-        mv.visitLdcInsn(params);
+        mv.visitLdcInsn(name);
         wrap(Type.getType(String.class));
         StringBuilder invokerDesc = new StringBuilder("(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS + ";");
         for (int i = 0; i < params.length; ++i) {
@@ -413,9 +457,14 @@ class JSObjectMethodVisitor extends MethodVisitor {
                 return isSupportedType(type.getElementType());
             case Type.OBJECT:
                 return type.getClassName().equals("java/lang/String") ||
-                        metadata.getClassMetadata(type.getClassName()).isJavaScriptObject();
+                        metadata.getClassMetadata(type.getInternalName()).isJavaScriptObject();
             default:
                 return true;
         }
+    }
+
+    @Override
+    public void visitMaxs(int maxStack, int maxLocals) {
+        super.visitMaxs(maxStack, maxLocals + additionalLocals);
     }
 }

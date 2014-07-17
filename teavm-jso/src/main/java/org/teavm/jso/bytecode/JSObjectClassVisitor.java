@@ -15,7 +15,9 @@
  */
 package org.teavm.jso.bytecode;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  *
@@ -33,9 +35,7 @@ class JSObjectClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        Type[] arguments = Type.getArgumentTypes(desc);
-        Type returnType = Type.getReturnType(desc);
         return new JSObjectMethodVisitor(Opcodes.ASM4, cv.visitMethod(access, name, desc, signature, exceptions),
-                arguments, returnType, access, locals, metadata);
+                name, desc, access, locals, metadata);
     }
 }

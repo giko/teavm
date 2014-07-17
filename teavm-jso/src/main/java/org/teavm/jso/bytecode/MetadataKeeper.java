@@ -43,7 +43,6 @@ class MetadataKeeper {
             if (name.equals("org/teavm/jso/JSObject")) {
                 classMetadata.javaScriptObject = true;
             }
-            classes.put(name, classMetadata);
             try (InputStream input = classLoader.getResourceAsStream(name + ".class")) {
                 if (input != null) {
                     new ClassReader(input).accept(new AnnotationGatheringVisitor(classMetadata), 0);
@@ -51,6 +50,7 @@ class MetadataKeeper {
             } catch (IOException e) {
                 throw new RuntimeException("Error reading class " + name);
             }
+            classes.put(name, classMetadata);
         }
         return classMetadata;
     }
@@ -66,8 +66,13 @@ class MetadataKeeper {
         @Override
         public void visit(int version, int access, String name, String signature, String superName,
                 String[] interfaces) {
-            if (!classMetadata.javaScriptObject && superName != null && (access & Opcodes.ACC_INTERFACE) != 0) {
-                classMetadata.javaScriptObject = getClassMetadata(superName).javaScriptObject;
+            if (!classMetadata.javaScriptObject && (access & Opcodes.ACC_INTERFACE) != 0) {
+                for (String iface : interfaces) {
+                    if (getClassMetadata(iface).javaScriptObject) {
+                        classMetadata.javaScriptObject = true;
+                        break;
+                    }
+                }
             }
             super.visit(version, access, name, signature, superName, interfaces);
         }
