@@ -1,0 +1,17 @@
+{
+    "manifest_version": 2,
+
+    "name": "TeaVM DevMode",
+    "description": "TeaVM DevMode plugin",
+    "version": "1.0",
+
+    "browser_action": {
+        "default_icon": "ghosts.png",
+        "default_title ": "Bind TeaVM development mode"
+    },
+
+    "background": {
+        "scripts": ["main.js"],
+        "persistent": false
+    }
+}

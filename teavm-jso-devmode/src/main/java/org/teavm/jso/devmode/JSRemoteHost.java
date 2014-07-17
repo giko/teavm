@@ -228,6 +228,10 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public JSObject invoke(JSObject instance, JSObject method, JSObject[] arguments) {
+        instance = uncast(instance);
+        for (int i = 0; i < arguments.length; ++i) {
+            arguments[i] = uncast(arguments[i]);
+        }
         if (!(instance instanceof JSRemoteValue)) {
             return exchange.invokeJavaMethod(instance, method, arguments);
         } else {

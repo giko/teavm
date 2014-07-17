@@ -123,6 +123,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
                 }
                 ClassMetadata argMeta = metadata.getClassMetadata(arg.getInternalName());
                 if (argMeta.isJavaScriptObject() && !arg.getInternalName().equals(JSOBJECT_CLS)) {
+                    mv.visitLdcInsn(arg);
                     mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast",
                             "(L" + JSOBJECT_CLS + ";Ljava/lang/Class;)" + "L" + JSOBJECT_CLS + ";");
                 }
@@ -255,7 +256,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
             lastParamLoc += params[i].getSize();
         }
         additionalLocals = Math.max(additionalLocals, lastParamLoc);
-        wrap(Type.getObjectType("java/lang/Object"));
+        wrap(Type.getObjectType(JSOBJECT_CLS));
         mv.visitLdcInsn(name);
         wrap(Type.getType(String.class));
         StringBuilder invokerDesc = new StringBuilder("(L" + JSOBJECT_CLS + ";L" + JSOBJECT_CLS + ";");
@@ -351,7 +352,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
                     unwrap("unwrapString", Type.getType(String.class));
                     return;
                 } else {
-                    mv.visitTypeInsn(Opcodes.CHECKCAST, type.getDescriptor());
+                    mv.visitTypeInsn(Opcodes.CHECKCAST, type.getInternalName());
                     return;
                 }
             }
@@ -369,9 +370,10 @@ class JSObjectMethodVisitor extends MethodVisitor {
             mv.visitLdcInsn(type);
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast", "(L" + JSOBJECT_CLS + ";Ljava/lang/Class;)" +
                     "L" + JSOBJECT_CLS + ";");
+        } else {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "wrap", "(" + type.getDescriptor() + ")" +
+                    "L" + JSOBJECT_CLS + ";");
         }
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "wrap", "(" + type.getDescriptor() + ")" +
-                "L" + JSOBJECT_CLS + ";");
     }
 
     private AnnotationNode find(AnnotationNode[] nodes, String annotName) {
@@ -456,7 +458,7 @@ class JSObjectMethodVisitor extends MethodVisitor {
             case Type.ARRAY:
                 return isSupportedType(type.getElementType());
             case Type.OBJECT:
-                return type.getClassName().equals("java/lang/String") ||
+                return type.getInternalName().equals("java/lang/String") ||
                         metadata.getClassMetadata(type.getInternalName()).isJavaScriptObject();
             default:
                 return true;

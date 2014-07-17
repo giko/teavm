@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
 import org.teavm.jso.bytecode.JSObjectTransformer;
 
 /**
@@ -61,6 +62,7 @@ public class JSAwareClassLoader extends ClassLoader {
             byte[] transformedBytes = transformer.transform(this, name, null, null, bytes);
             if (transformedBytes != null) {
                 CheckClassAdapter.verify(new ClassReader(transformedBytes), true, new PrintWriter(System.err));
+                new ClassReader(transformedBytes).accept(new TraceClassVisitor(new PrintWriter(System.err)), 0);
                 bytes = transformedBytes;
             }
         } catch (IOException e) {
