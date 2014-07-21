@@ -5,13 +5,20 @@
     "description": "TeaVM DevMode plugin",
     "version": "1.0",
 
-    "browser_action": {
-        "default_icon": "ghosts.png",
+    "permissions" : [
+        "debugger",
+        "activeTab",
+        "tabs" ],
+
+    "browser_action" : {
+        "default_icon": "ghost.png",
         "default_title ": "Bind TeaVM development mode"
     },
 
     "background": {
         "scripts": ["main.js"],
         "persistent": false
-    }
+    },
+
+    "web_accessible_resources" : ["inject.js"]
 }

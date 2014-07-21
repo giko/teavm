@@ -293,7 +293,7 @@ public class JSRemoteHost implements JSHost {
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {
-                sender.out().writeByte(JSMessageExchange.INVOKE_METHOD);
+                sender.out().writeByte(JSMessageExchange.GET_PROPERTY);
                 sender.out().writeInt(messageId);
                 valueSender.send(instance);
                 valueSender.send(index);
@@ -315,10 +315,11 @@ public class JSRemoteHost implements JSHost {
             int messageId = exchange.addFuture(response);
             JSRemoteValueSender valueSender = createValueSender(sender);
             try {
-                sender.out().writeByte(JSMessageExchange.INVOKE_METHOD);
+                sender.out().writeByte(JSMessageExchange.SET_PROPERTY);
                 sender.out().writeInt(messageId);
                 valueSender.send(instance);
                 valueSender.send(index);
+                valueSender.send(obj);
                 sender.send();
             } catch (IOException e) {
                 throw new RuntimeException("Error calling remote method");

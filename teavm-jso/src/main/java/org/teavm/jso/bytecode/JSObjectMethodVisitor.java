@@ -77,9 +77,9 @@ class JSObjectMethodVisitor extends MethodVisitor {
             emitMethodInvocation(opcode, owner, name, desc);
         } else {
             AnnotationNode[] nodes = ownerData.getMethodAnnotations(name, desc);
-            AnnotationNode propertyAnnot = find(nodes, Type.getInternalName(JSProperty.class));
-            AnnotationNode indexerAnnot = find(nodes, Type.getInternalName(JSIndexer.class));
-            AnnotationNode consAnnot = find(nodes, Type.getInternalName(JSConstructor.class));
+            AnnotationNode propertyAnnot = find(nodes, Type.getDescriptor(JSProperty.class));
+            AnnotationNode indexerAnnot = find(nodes, Type.getDescriptor(JSIndexer.class));
+            AnnotationNode consAnnot = find(nodes, Type.getDescriptor(JSConstructor.class));
             if (propertyAnnot != null) {
                 emitProperty(owner, name, desc);
             } else if (indexerAnnot != null) {

@@ -38,7 +38,6 @@ public abstract class JSMessageExchange implements JSMessageSender {
     public static final byte RECEIVE_EXCEPTION = 1;
     public static final byte RECEIVE_JAVA_CLASS_INFO = 2;
     public static final byte CREATE_ARRAY = 3;
-    public static final byte GET_TYPE_NAME = 4;
     public static final byte INVOKE_METHOD = 5;
     public static final byte INSTANTIATE_CLASS = 6;
     public static final byte GET_JAVA_CLASS_INFO = 7;
