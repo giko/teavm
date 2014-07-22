@@ -71,6 +71,45 @@ class JSObjectMethodVisitor extends MethodVisitor {
     }
 
     @Override
+    public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+        switch (opcode) {
+            case Opcodes.PUTFIELD:
+            case Opcodes.PUTSTATIC:
+                visitPutField(opcode, owner, name, desc);
+                break;
+            case Opcodes.GETFIELD:
+            case Opcodes.GETSTATIC:
+                visitGetField(opcode, owner, name, desc);
+                break;
+        }
+    }
+
+    private void visitPutField(int opcode, String owner, String name, String desc) {
+        Type type = Type.getType(desc);
+        if (type.getSort() == Type.OBJECT) {
+            ClassMetadata meta = metadata.getClassMetadata(type.getInternalName());
+            if (meta.isJavaScriptObject() && !type.getInternalName().equals(JSOBJECT_CLS)) {
+                mv.visitLdcInsn(type);
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "cast", "(L" + JSOBJECT_CLS +
+                        ";Ljava/lang/Class;)L" + JSOBJECT_CLS + ";");
+            }
+        }
+        super.visitFieldInsn(opcode, owner, name, desc);
+    }
+
+    private void visitGetField(int opcode, String owner, String name, String desc) {
+        super.visitFieldInsn(opcode, owner, name, desc);
+        Type type = Type.getType(desc);
+        if (type.getSort() == Type.OBJECT) {
+            ClassMetadata meta = metadata.getClassMetadata(type.getInternalName());
+            if (meta.isJavaScriptObject() && !type.getInternalName().equals(JSOBJECT_CLS)) {
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, JS_CLS, "uncast", "(L" + JSOBJECT_CLS +
+                        ";)L" + JSOBJECT_CLS + ";");
+            }
+        }
+    }
+
+    @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
         ClassMetadata ownerData = metadata.getClassMetadata(owner);
         if (!ownerData.isJavaScriptObject()) {
@@ -346,15 +385,10 @@ class JSObjectMethodVisitor extends MethodVisitor {
                 break;
             case Type.OBJECT: {
                 String className = type.getClassName();
-                if (className.equals(JSOBJECT_CLS)) {
-                    return;
-                } else if (className.equals("java/lang/String")) {
+                if (className.equals("java/lang/String")) {
                     unwrap("unwrapString", Type.getType(String.class));
-                    return;
-                } else {
-                    mv.visitTypeInsn(Opcodes.CHECKCAST, type.getInternalName());
-                    return;
                 }
+                return;
             }
         }
         throw new IllegalArgumentException("Unsupported type: " + type);

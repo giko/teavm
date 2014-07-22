@@ -6,7 +6,7 @@ __TeaVM_remote__ = (function() {
         for (var i = 2; i < arguments.length; ++i) {
             params.push(arguments[i]);
         }
-        if (!instance.method) {
+        if (!instance[method]) {
             throw "Method not found: " + method;
         }
         return instance[method].apply(instance, params);

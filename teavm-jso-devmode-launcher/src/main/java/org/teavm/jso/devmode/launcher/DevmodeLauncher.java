@@ -17,6 +17,7 @@ package org.teavm.jso.devmode.launcher;
 
 import org.apache.commons.cli.*;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
@@ -95,10 +96,16 @@ public class DevmodeLauncher {
 
     public void launch() throws Exception {
         JS.getGlobal();
-        Server server = new Server(port);
+
+        Server server = new Server();
+        ServerConnector connector = new ServerConnector(server);
+        connector.setPort(port);
+        server.addConnector(connector);
+
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
         server.setHandler(context);
+
         JSRemoteEndpoint.setMainClass(mainClass);
         ServerContainer wscontainer = WebSocketServerContainerInitializer.configureContext(context);
         wscontainer.addEndpoint(JSRemoteEndpoint.class);

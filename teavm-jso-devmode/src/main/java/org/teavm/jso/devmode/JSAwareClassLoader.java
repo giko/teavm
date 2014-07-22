@@ -61,8 +61,8 @@ public class JSAwareClassLoader extends ClassLoader {
             bytes = IOUtils.toByteArray(input);
             byte[] transformedBytes = transformer.transform(this, name, null, null, bytes);
             if (transformedBytes != null) {
-                CheckClassAdapter.verify(new ClassReader(transformedBytes), true, new PrintWriter(System.err));
-                new ClassReader(transformedBytes).accept(new TraceClassVisitor(new PrintWriter(System.err)), 0);
+                /*CheckClassAdapter.verify(new ClassReader(transformedBytes), true, new PrintWriter(System.err));
+                new ClassReader(transformedBytes).accept(new TraceClassVisitor(new PrintWriter(System.err)), 0);*/
                 bytes = transformedBytes;
             }
         } catch (IOException e) {

@@ -1,5 +1,6 @@
 EventTypes = {
     RECEIVE_VALUE : 0,
+    RECEIVE_EXCEPTION : 1,
     INVOKE_METHOD : 5,
     GET_PROPERTY : 8,
     SET_PROPERTY : 9
@@ -40,7 +41,7 @@ function injectContentScript(tab) {
 }
 function attachDebugger(tab) {
     debuggee = { tabId : tab.id };
-    chrome.debugger.attach(debuggee, "1.1", (function(callback) {
+    chrome.debugger.attach(debuggee, "1.0", (function(callback) {
         chrome.debugger.sendCommand(debuggee, "Debugger.enable", {}, callback);
     }).bind(null, (function(callback) {
         chrome.debugger.sendCommand(debuggee, "Runtime.evaluate", { expression : "window" },
@@ -111,11 +112,16 @@ function receiveGetPropertyMessage(input) {
 function sendValueBack(messageId, response) {
     var out = new OutputStream();
     var valueWriter = new ValueWriter(out);
-    out.writeByte(EventTypes.RECEIVE_VALUE);
-    out.writeInt(messageId);
-    valueWriter.write(response.result);
+    if (!response.wasThrown) {
+        out.writeByte(EventTypes.RECEIVE_VALUE);
+        out.writeInt(messageId);
+        valueWriter.write(response.result);
+    } else {
+        out.writeByte(EventTypes.RECEIVE_EXCEPTION);
+        out.writeInt(messageId);
+        out.writeUTF8(response.result.description);
+    }
     connection.send(out.getData());
-    // TODO: add exception handling
 }
 
 function InputStream(data) {

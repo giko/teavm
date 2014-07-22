@@ -23,7 +23,6 @@ import org.teavm.dom.events.EventListener;
 import org.teavm.dom.events.EventTarget;
 import org.teavm.jso.JS;
 
-
 /**
  *
  * @author Alexey Andreev

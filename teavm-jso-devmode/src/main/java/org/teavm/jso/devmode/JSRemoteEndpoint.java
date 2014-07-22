@@ -38,11 +38,26 @@ public class JSRemoteEndpoint extends JSMessageExchange {
     }
 
     @OnOpen
-    public void open(Session session) throws ReflectiveOperationException {
+    public void open(Session session) {
         this.session = session;
         init();
-        Method method = mainClass.getMethod("main", String[].class);
-        method.invoke(null, new Object[] { new String[0] });
+        getEventQueue().put(new Runnable() {
+            @Override public void run() {
+                try {
+                    Method method = mainClass.getMethod("main", String[].class);
+                    method.invoke(null, new Object[] { new String[0] });
+                } catch (ReflectiveOperationException e) {
+                    e.printStackTrace(System.err);
+                }
+            }
+        });
+        Thread eventQueueThread = new Thread(new Runnable() {
+            @Override public void run() {
+                getEventQueue().exec();
+            }
+        });
+        eventQueueThread.setName("TeaVM-main");
+        eventQueueThread.start();
     }
 
     @OnMessage

@@ -36,11 +36,7 @@ public class WaitingFuture {
             eventQueue.exec();
         }
         if (exception != null) {
-            if (exception instanceof RuntimeException) {
-                throw (RuntimeException)exception;
-            } else {
-                throw new JSRemoteException(exception);
-            }
+            throw new JSRemoteException("JavaScript exception occured", exception);
         }
         return calculatedValue;
     }
