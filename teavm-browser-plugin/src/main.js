@@ -1,7 +1,11 @@
 EventTypes = {
     RECEIVE_VALUE : 0,
     RECEIVE_EXCEPTION : 1,
+    RECEIVE_JAVA_CLASS_INFO : 2,
+    CREATE_ARRAY : 3,
     INVOKE_METHOD : 5,
+    INSTANTIATE_CLASS : 6,
+    GET_JAVA_CLASS_INFO : 7,
     GET_PROPERTY : 8,
     SET_PROPERTY : 9
 }
@@ -21,6 +25,7 @@ var connection = null;
 var objects = {};
 var objectIds = {};
 var objectIdGenerator = 0;
+var javaObjects = {};
 var debuggee = null;
 var globalObjectId = null;
 var teavmId = null;
@@ -87,26 +92,32 @@ function receiveInvokeMethodMessage(input) {
     for (var i = 0; i < argsCount; ++i) {
         args.push(valueReader.read());
     }
-    var request = {
-        objectId : teavmId,
-        functionDeclaration : "__TeaVM_remote__.callMethod",
-        arguments : args,
-        returnByValue : false };
-    chrome.debugger.sendCommand(debuggee, "Runtime.callFunctionOn", request, function(response) {
-        sendValueBack(messageId, response);
+    Future.resolveAll(args, function(args) {
+        var request = {
+            objectId : teavmId,
+            functionDeclaration : "__TeaVM_remote__.callMethod",
+            arguments : args,
+            returnByValue : false };
+        chrome.debugger.sendCommand(debuggee, "Runtime.callFunctionOn", request,
+                function(response) {
+            sendValueBack(messageId, response);
+        });
     });
 }
 function receiveGetPropertyMessage(input) {
     var valueReader = new ValueReader(input);
     var messageId = input.readInt();
     var args = [valueReader.read(), valueReader.read()];
-    var request = {
-        objectId : teavmId,
-        functionDeclaration : "__TeaVM_remote__.getProperty",
-        arguments : args,
-        returnByValue : false };
-    chrome.debugger.sendCommand(debuggee, "Runtime.callFunctionOn", request, function(response) {
-        sendValueBack(messageId, response);
+    Future.resolveAll(args, function(args) {
+        var request = {
+            objectId : teavmId,
+            functionDeclaration : "__TeaVM_remote__.getProperty",
+            arguments : args,
+            returnByValue : false };
+        chrome.debugger.sendCommand(debuggee, "Runtime.callFunctionOn", request,
+                function(response) {
+            sendValueBack(messageId, response);
+        });
     });
 }
 function sendValueBack(messageId, response) {
@@ -244,30 +255,109 @@ OutputStream.prototype.getData = function() {
     return resultBuffer;
 }
 
+function Future(value) {
+    if (value === undefined) {
+        this.value = null;
+        this.error = null;
+        this.calculated = false;
+        this.callbacks = [];
+    } else {
+        this.value = value;
+        this.error = null;
+        this.calculated = true;
+        this.callbacks = null;
+    }
+}
+Future.prototype.resolve = function(callback, error) {
+    if (this.calculated) {
+        if (!this.error) {
+            callback(this.value);
+        } else {
+            error(this.error);
+        }
+    } else {
+        this.callbacks.push({ callback : callback, error : error });
+    }
+}
+Future.prototype.set = function(value) {
+    if (this.calculated) {
+        throw "Value already calculated";
+    }
+    this.value = value;
+    this.calculated = true;
+    for (var i = 0; i < this.callbacks.length; ++i) {
+        this.callbacks[i].callback(value);
+    }
+    this.callbacks = null;
+}
+Future.prototype.error = function(error) {
+    if (this.calculated) {
+        throw "Value already calculated";
+    }
+    this.error = error;
+    this.calculated = true;
+    for (var i = 0; i < this.callbacks.length; ++i) {
+        var errorHandler = this.callbacks[i].error;
+        if (errorHandler) {
+            errorHandler(error);
+        }
+    }
+    this.callbacks = null;
+}
+Future.resolveAll = function(futures, callback, error) {
+    var left = futures.length;
+    var values = [];
+    var stopped = false;
+    for (var i = 0; i < futures.length; ++i) {
+        values.push(null);
+        futures[i].resolve((function(index) {
+            return function(value) {
+                if (stopped) {
+                    return;
+                }
+                values[index] = value;
+                if (--left == 0) {
+                    callback(values);
+                }
+            };
+        })(i), function(err) {
+            if (stopped) {
+                return;
+            }
+            stopped = true;
+            error(err);
+        });
+    }
+}
+
 function ValueReader(input) {
     this.input = input;
 }
 ValueReader.prototype.read = function() {
     switch (this.input.readByte()) {
         case ValueTypes.BOOLEAN:
-            return { value : this.input.readByte() == 1 };
+            return new Future({ value : this.input.readByte() == 1 });
         case ValueTypes.GLOBAL:
-            return { objectId : globalObjectId };
+            return new Future({ objectId : globalObjectId });
         case ValueTypes.INTEGER:
-            return { value : this.input.readInt() };
+            return new Future({ value : this.input.readInt() });
         case ValueTypes.JAVA_OBJECT:
-            throw "Java objects are not supported yet";
+            return this.readJavaObject();
         case ValueTypes.NULL:
-            return { value : null };
+            return new Future({ value : null });
         case ValueTypes.NUMBER:
-            return { value : this.input.readNumber() };
+            return new Future({ value : this.input.readNumber() });
         case ValueTypes.OBJECT:
-            return { objectId : objects[this.input.readInt()] };
+            return new Future({ objectId : objects[this.input.readInt()] });
         case ValueTypes.STRING:
-            return { value : this.input.readUTF8() };
+            return new Future({ value : this.input.readUTF8() });
         case ValueTypes.UNDEFINED:
-            return { value : undefined };
+            return new Future({ value : undefined });
     }
+}
+ValueReader.prototype.readJavaObject = function() {
+    var f = new Future();
+    f.error("Java object not supported yet");
 }
 
 function ValueWriter(output) {

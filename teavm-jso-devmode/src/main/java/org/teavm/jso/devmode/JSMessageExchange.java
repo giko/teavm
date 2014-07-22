@@ -73,9 +73,9 @@ public abstract class JSMessageExchange implements JSMessageSender {
             }
             case GET_JAVA_CLASS_INFO: {
                 int messageId = input.readInt();
-                int objectId = input.readInt();
-                JSObject obj = javaObjects.get(objectId);
-                sendJavaObjectInfo(messageId, obj);
+                int classId = input.readInt();
+                JSObjectMetadata cls = javaClasses.get(classId);
+                sendJavaObjectInfo(messageId, cls);
                 break;
             }
             case INVOKE_METHOD: {
@@ -187,12 +187,11 @@ public abstract class JSMessageExchange implements JSMessageSender {
         return new JSRemoteValueReceiver(input, javaObjects, javaClasses);
     }
 
-    private void sendJavaObjectInfo(int messageId, JSObject obj) throws IOException {
+    private void sendJavaObjectInfo(int messageId, JSObjectMetadata metadata) throws IOException {
         JSDataMessageSender sender = new JSDataMessageSender(this);
         sender.out().write(RECEIVE_JAVA_CLASS_INFO);
         sender.out().writeInt(messageId);
 
-        JSObjectMetadata metadata = javaClasses.get(obj.getClass());
         List<JSObjectProperty> properties = metadata.getProperties();
         List<JSObjectMethod> methods = metadata.getMethods();
 
