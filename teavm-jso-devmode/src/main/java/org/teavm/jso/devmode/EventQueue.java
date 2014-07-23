@@ -18,12 +18,15 @@ package org.teavm.jso.devmode;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
 public class EventQueue {
+    private static final Logger logger = LoggerFactory.getLogger(EventQueue.class);
     private BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     private volatile boolean stopped = false;
 
@@ -32,6 +35,9 @@ public class EventQueue {
     }
 
     public void exec() {
+        if (logger.isInfoEnabled()) {
+            logger.info("Entering event queue {}", this);
+        }
         stopped = false;
         while (!stopped) {
             try {
@@ -43,9 +49,15 @@ public class EventQueue {
                 return;
             }
         }
+        if (logger.isInfoEnabled()) {
+            logger.info("Event queue {} stopped", this);
+        }
     }
 
     public void stop() {
+        if (logger.isInfoEnabled()) {
+            logger.info("Event queue {} is about to stop", this);
+        }
         stopped = true;
         if (queue.isEmpty()) {
             queue.offer(new Runnable() {

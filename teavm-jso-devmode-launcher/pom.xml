@@ -27,6 +27,10 @@
   <name>TeaVM JavaScript objects DevMode launcher</name>
   <description>Launcher application of development mode for JSO using remote browser control</description>
 
+  <properties>
+    <logback.version>1.1.2</logback.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.teavm</groupId>
@@ -57,6 +61,16 @@
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
       <artifactId>javax-websocket-server-impl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>${logback.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
     </dependency>
   </dependencies>
 

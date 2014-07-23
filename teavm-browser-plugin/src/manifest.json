@@ -16,7 +16,7 @@
     },
 
     "background": {
-        "scripts": ["main.js"],
+        "scripts": ["shared.js", "main.js"],
         "persistent": false
     },
 

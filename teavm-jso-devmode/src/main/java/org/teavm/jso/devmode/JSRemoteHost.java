@@ -18,6 +18,8 @@ package org.teavm.jso.devmode;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.teavm.jso.JSArray;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.devmode.values.*;
@@ -28,6 +30,7 @@ import org.teavm.jso.spi.JSHost;
  * @author Alexey Andreev <konsoletyper@gmail.com>
  */
 public class JSRemoteHost implements JSHost {
+    private static final Logger logger = LoggerFactory.getLogger(JSRemoteHost.class);
     private static JSRemoteHost instance;
     private JSMessageExchange exchange;
 
@@ -61,6 +64,10 @@ public class JSRemoteHost implements JSHost {
         try {
             sender.out().writeByte(JSRemoteEndpoint.CREATE_ARRAY);
             sender.out().writeInt(messageId);
+            sender.out().writeInt(size);
+            if (logger.isInfoEnabled()) {
+                logger.info("Sending command to create an array of {} elements and put it into slot #", size);
+            }
             sender.send();
         } catch (IOException e) {
             throw new RuntimeException("Error creating JavaScript array", e);
@@ -92,22 +99,10 @@ public class JSRemoteHost implements JSHost {
 
     private class TypeExtractionVisitor implements JSRemoteValueVisitor {
         JSObject result;
-
         @Override
         public void visit(JSRemoteObject value) throws Exception {
-            JSDataMessageSender sender = createSender();
-            WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
-            int messageId = exchange.addFuture(response);
-            try {
-                sender.out().writeByte(JSRemoteEndpoint.CREATE_ARRAY);
-                sender.out().writeInt(messageId);
-                sender.out().writeInt(value.getId());
-            } catch (IOException e) {
-                throw new RuntimeException("Error getting JavaScript type", e);
-            }
-            result = new JSRemoteString((String)response.get());
+            result = new JSRemoteString("object");
         }
-
         @Override public void visit(JSGlobalObject value) throws Exception {
             result = new JSRemoteString("object");
         }
@@ -248,6 +243,10 @@ public class JSRemoteHost implements JSHost {
                 for (int i = 0; i < arguments.length; ++i) {
                     valueSender.send(arguments[i]);
                 }
+                if (logger.isInfoEnabled()) {
+                    logger.info("Sending command to call method {}.{} and put result to slot #",
+                            exchange.printValue(instance), exchange.printValue(method), messageId);
+                }
                 sender.send();
             } catch (IOException e) {
                 throw new RuntimeException("Error calling remote method");
@@ -258,6 +257,10 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public JSObject instantiate(JSObject instance, JSObject method, JSObject[] arguments) {
+        instance = uncast(instance);
+        for (int i = 0; i < arguments.length; ++i) {
+            arguments[i] = uncast(arguments[i]);
+        }
         if (!(instance instanceof JSRemoteValue)) {
             throw new RuntimeException("Can't call non-JavaScript constructor");
         } else {
@@ -274,6 +277,10 @@ public class JSRemoteHost implements JSHost {
                 for (int i = 0; i < arguments.length; ++i) {
                     valueSender.send(arguments[i]);
                 }
+                if (logger.isInfoEnabled()) {
+                    logger.info("Sending command to call constructor {}.{} and put result to slot #{}",
+                            exchange.printValue(instance), exchange.printValue(method), messageId);
+                }
                 sender.send();
             } catch (IOException e) {
                 throw new RuntimeException("Error calling remote constructor");
@@ -284,6 +291,8 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public JSObject get(JSObject instance, JSObject index) {
+        instance = uncast(instance);
+        index = uncast(index);
         if (!(instance instanceof JSRemoteValue)) {
             // TODO: handle invocation of
             return null;
@@ -297,6 +306,10 @@ public class JSRemoteHost implements JSHost {
                 sender.out().writeInt(messageId);
                 valueSender.send(instance);
                 valueSender.send(index);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Sending command to get property {}.{} to slot #{}", exchange.printValue(instance),
+                            exchange.printValue(index), messageId);
+                }
                 sender.send();
             } catch (IOException e) {
                 throw new RuntimeException("Error calling remote method");
@@ -307,6 +320,9 @@ public class JSRemoteHost implements JSHost {
 
     @Override
     public void set(JSObject instance, JSObject index, JSObject obj) {
+        instance = uncast(instance);
+        index = uncast(index);
+        obj = uncast(obj);
         if (!(instance instanceof JSRemoteValue)) {
             // TODO: handle invocation of
         } else {
@@ -320,6 +336,10 @@ public class JSRemoteHost implements JSHost {
                 valueSender.send(instance);
                 valueSender.send(index);
                 valueSender.send(obj);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Sending command to set property {}.{} to value {}", exchange.printValue(instance),
+                            exchange.printValue(index), exchange.printValue(obj));
+                }
                 sender.send();
             } catch (IOException e) {
                 throw new RuntimeException("Error calling remote method");
@@ -338,8 +358,8 @@ public class JSRemoteHost implements JSHost {
     public <T extends JSObject> T cast(JSObject obj, Class<T> type) {
         obj = uncast(obj);
         @SuppressWarnings("unchecked")
-        T safeResult = (T)Proxy.newProxyInstance(JSRemoteHost.class.getClassLoader(),
-                new Class<?>[] { type }, new JSObjectProxy(obj));
+        T safeResult = (T)Proxy.newProxyInstance(JSRemoteHost.class.getClassLoader(), new Class<?>[] { type },
+                new JSObjectProxy(obj));
         return safeResult;
     }
 

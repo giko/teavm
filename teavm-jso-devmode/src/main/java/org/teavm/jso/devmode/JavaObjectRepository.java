@@ -25,19 +25,22 @@ import org.teavm.jso.JSObject;
  * @author Alexey Andreev
  */
 public class JavaObjectRepository {
-    private AtomicInteger indexGenerator = new AtomicInteger();
+    private AtomicInteger idGenerator = new AtomicInteger();
     private ConcurrentMap<JSObject, Integer> idMap = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, JSObject> objectMap = new ConcurrentHashMap<>();
 
-    public int put(JSObject object) {
-        int id = indexGenerator.incrementAndGet();
-        idMap.put(object, id);
-        objectMap.put(id, object);
-        return id;
-    }
-
     public Integer getId(JSObject object) {
-        return idMap.get(object);
+        Integer id = idMap.get(object);
+        if (id == null) {
+            id = idGenerator.incrementAndGet();
+            Integer oldId = idMap.putIfAbsent(object, id);
+            if (oldId != null) {
+                id = oldId;
+            } else {
+                objectMap.put(id, object);
+            }
+        }
+        return id;
     }
 
     public JSObject get(int id) {

@@ -20,10 +20,11 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSType;
 import org.teavm.jso.devmode.metadata.*;
@@ -34,13 +35,13 @@ import org.teavm.jso.devmode.values.*;
  * @author Alexey Andreev
  */
 public abstract class JSMessageExchange implements JSMessageSender {
+    private static final Logger logger = LoggerFactory.getLogger(JSMessageExchange.class);
     public static final byte RECEIVE_VALUE = 0;
     public static final byte RECEIVE_EXCEPTION = 1;
     public static final byte RECEIVE_JAVA_CLASS_INFO = 2;
     public static final byte CREATE_ARRAY = 3;
     public static final byte INVOKE_METHOD = 5;
     public static final byte INSTANTIATE_CLASS = 6;
-    public static final byte GET_JAVA_CLASS_INFO = 7;
     public static final byte GET_PROPERTY = 8;
     public static final byte SET_PROPERTY = 9;
     public static final byte READABLE_PROPERTY = 1;
@@ -48,7 +49,7 @@ public abstract class JSMessageExchange implements JSMessageSender {
     private final AtomicInteger messageIdGenerator = new AtomicInteger();
     private ConcurrentMap<Integer, WaitingFuture> futures = new ConcurrentHashMap<>();
     private JavaObjectRepository javaObjects = new JavaObjectRepository();
-    private JSObjectMetadataRepository javaClasses = new JSObjectMetadataRepository();
+    private JSObjectMetadataRepository javaClasses = new JSObjectMetadataRepository(this);
     private EventQueue eventQueue = new EventQueue();
 
     public void init() {
@@ -62,20 +63,19 @@ public abstract class JSMessageExchange implements JSMessageSender {
                 int messageId = input.readInt();
                 JSRemoteValueReceiver valueReceiver = createValueReceiver(input);
                 JSObject value = valueReceiver.receive();
+                if (logger.isInfoEnabled()) {
+                    logger.info("Received value {} for slot #{}", printValue(value), messageId);
+                }
                 futures.get(messageId).set(value);
                 break;
             }
             case RECEIVE_EXCEPTION: {
                 int messageId = input.readInt();
                 String exceptionMesage = input.readUTF();
+                if (logger.isInfoEnabled()) {
+                    logger.info("Received exception for slot #{}", messageId);
+                }
                 futures.get(messageId).setException(new JSRemoteException(exceptionMesage));
-                break;
-            }
-            case GET_JAVA_CLASS_INFO: {
-                int messageId = input.readInt();
-                int classId = input.readInt();
-                JSObjectMetadata cls = javaClasses.get(classId);
-                sendJavaObjectInfo(messageId, cls);
                 break;
             }
             case INVOKE_METHOD: {
@@ -87,9 +87,17 @@ public abstract class JSMessageExchange implements JSMessageSender {
                 for (int i = 0; i < arguments.length; ++i) {
                     arguments[i] = valueReceiver.receive();
                 }
+                if (logger.isInfoEnabled()) {
+                    logger.info("Invoking method {}.{}, expecting result in slot #{}", printValue(instance),
+                            printValue(method), messageId);
+                }
                 invokeJavaMethodAndSendResponse(messageId, instance, method, arguments);
             }
         }
+    }
+
+    public String printValue(JSObject value) {
+        return new JSRemoteValuePrettyPrinter(javaObjects).print(value);
     }
 
     private void invokeJavaMethodAndSendResponse(final int messageId, final JSObject instance, final JSObject method,
@@ -105,6 +113,9 @@ public abstract class JSMessageExchange implements JSMessageSender {
                     messageSender.out().writeByte(RECEIVE_VALUE);
                     messageSender.out().writeInt(messageId);
                     valueSender.send(result);
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Sending method invocation result {} to slot #{}", result, messageId);
+                    }
                     messageSender.send();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -142,6 +153,10 @@ public abstract class JSMessageExchange implements JSMessageSender {
         }
         Object result;
         try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Calling {}.{}. Resolved method {}", printValue(instance), printValue(method),
+                        signature.getJavaMethod());
+            }
             result = signature.getJavaMethod().invoke(instance, javaAguments);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error calling Java method " + signature.getJavaMethod(), e);
@@ -185,33 +200,6 @@ public abstract class JSMessageExchange implements JSMessageSender {
 
     private JSRemoteValueReceiver createValueReceiver(DataInput input) {
         return new JSRemoteValueReceiver(input, javaObjects, javaClasses);
-    }
-
-    private void sendJavaObjectInfo(int messageId, JSObjectMetadata metadata) throws IOException {
-        JSDataMessageSender sender = new JSDataMessageSender(this);
-        sender.out().write(RECEIVE_JAVA_CLASS_INFO);
-        sender.out().writeInt(messageId);
-
-        List<JSObjectProperty> properties = metadata.getProperties();
-        List<JSObjectMethod> methods = metadata.getMethods();
-
-        sender.out().writeShort((short)properties.size());
-        for (JSObjectProperty property : properties) {
-            sender.out().writeUTF(property.getName());
-            byte flags = 0;
-            if (property.getGetter() != null) {
-                flags |= READABLE_PROPERTY;
-            }
-            if (property.getSetter() != null) {
-                flags |= WRITABLE_PROPERTY;
-            }
-            sender.out().writeByte(flags);
-        }
-
-        sender.out().writeShort((short)methods.size());
-        for (JSObjectMethod method : methods) {
-            sender.out().writeUTF(method.getName());
-        }
     }
 
     @Override

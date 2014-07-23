@@ -58,7 +58,7 @@ public class JSRemoteValueReceiver {
                 if (cls == null) {
                     throw new IllegalStateException("Java class not found: " + objectId);
                 }
-                if (javaClasses.get(obj.getClass()).getIndex() != cls.getIndex()) {
+                if (javaClasses.get(obj.getClass()).getId() != cls.getId()) {
                     throw new IllegalStateException("Java object and class markers don't match each other");
                 }
                 return obj;

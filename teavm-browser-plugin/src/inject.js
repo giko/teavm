@@ -27,8 +27,7 @@ __TeaVM_remote__ = (function() {
         proxyClasses[classId] = description;
     }
     function createProxy(classId, proxyId) {
-        var object = null;
-        object.__TeaVM_proxyId__ = proxyId;
+        var object = new Object();
         var description = proxyClasses[classId];
         for (var property in description.properties) {
             var propertyData = description.properties[property];
@@ -36,8 +35,11 @@ __TeaVM_remote__ = (function() {
             if (propertyData.readable) {
                 propertyDesc.get = (function(propertyName) {
                     return function() {
-                        return sendMessage({ type : "get-property", propertyName : propertyName,
-                                instance : object });
+                        return sendMessage({
+                            type : "get-property",
+                            propertyName : propertyName,
+                            instance : object
+                        });
                     };
                 })(property);
             }
@@ -45,8 +47,12 @@ __TeaVM_remote__ = (function() {
                 propertyDesc.writable = true;
                 propertyDesc.set = (function(propertyName) {
                     return function(value) {
-                        sendMessage({ type : "set-property", propertyName : propertyName,
-                                instance : object, value : value });
+                        sendMessage({
+                            type : "set-property",
+                            propertyName : propertyName,
+                            instance : object,
+                            value : value
+                        });
                     };
                 })(property);
             }
@@ -60,8 +66,12 @@ __TeaVM_remote__ = (function() {
                     for (var i = 0; i < arguments.length; ++i) {
                         params.push(arguments[i]);
                     }
-                    return sendMessage({ type : "invoke-method", methodName : methodName,
-                                instance : object, params : params });
+                    return sendMessage({
+                        type : "invoke-method",
+                        methodName : methodName,
+                        instance : object,
+                        params : params
+                    });
                 };
             })(method);
         }
@@ -70,10 +80,26 @@ __TeaVM_remote__ = (function() {
     }
     function sendMessage(message) {
         sentMessage = message;
-        debugger;
-        sentMessage = null;
+        while (sentMessage != null) {
+            debugger;
+        }
         return receivedMessage;
     }
-    return { declareProxyClass : declareProxyClass, createProxy : createProxy,
-            callMethod : callMethod, getProperty : getProperty, setProperty : setProperty };
+    function receiveMessage() {
+        var result = sentMessage;
+        sendMessage = null;
+        return result;
+    }
+    function sendResponse(response) {
+        receivedMessage = response;
+    }
+    return {
+        declareProxyClass : declareProxyClass,
+        createProxy : createProxy,
+        receiveMessage : receiveMessage,
+        callMethod : callMethod,
+        getProperty : getProperty,
+        setProperty : setProperty,
+        sendResponse : sendResponse
+    };
 })();

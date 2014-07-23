@@ -30,7 +30,7 @@ public class JSObjectMetadata {
     private List<JSObjectProperty> readonlyProperties = Collections.unmodifiableList(properties);
     private List<JSObjectMethod> methods = new ArrayList<>();
     private List<JSObjectMethod> readonlyMethods = Collections.unmodifiableList(methods);
-    int index;
+    int id;
 
     static {
         jsTypeMap.put(void.class, JSType.UNDEFINED);
@@ -50,8 +50,8 @@ public class JSObjectMetadata {
         }
     }
 
-    public int getIndex() {
-        return index;
+    public int getId() {
+        return id;
     }
 
     private void processInterface(Class<?> iface, Set<Class<?>> processedInteraces) {
@@ -96,7 +96,7 @@ public class JSObjectMetadata {
                 }
                 JSType returnType = asJSType(method.getReturnType());
                 JSMethodSignature signature = new JSMethodSignature(jsArgs, returnType, method);
-                jsMethod.getSignatures().add(signature);
+                jsMethod.addSignature(signature);
                 merge(jsMethod);
             }
         }
@@ -174,7 +174,7 @@ public class JSObjectMetadata {
         if (cls.isPrimitive()) {
             return !cls.equals(long.class) && !cls.equals(void.class);
         } else {
-            return JSObject.class.isAssignableFrom(cls);
+            return cls.equals(String.class) || JSObject.class.isAssignableFrom(cls);
         }
     }
 

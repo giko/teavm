@@ -68,6 +68,7 @@
     <html4j.version>0.7.5</html4j.version>
     <jetty.version>9.2.1.v20140609</jetty.version>
     <sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</sonatypeOssDistMgmtSnapshotsUrl>
+    <slf4j.version>1.7.7</slf4j.version>
   </properties>
 
   <modules>
@@ -151,6 +152,11 @@
         <groupId>org.eclipse.jetty.websocket</groupId>
         <artifactId>javax-websocket-server-impl</artifactId>
         <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

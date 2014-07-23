@@ -51,7 +51,7 @@ public class JSRemoteValueSender implements JSRemoteValueVisitor {
         } else {
             out.writeByte(JSRemoteValue.JAVA_OBJECT);
             out.writeInt(javaObjects.getId(value));
-            out.writeInt(javaClasses.get(value.getClass()).getIndex());
+            out.writeInt(javaClasses.get(value.getClass()).getId());
         }
     }
 
