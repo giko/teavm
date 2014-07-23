@@ -2,11 +2,11 @@ EventTypes = {
     RECEIVE_VALUE : 0,
     RECEIVE_EXCEPTION : 1,
     RECEIVE_JAVA_CLASS_INFO : 2,
-    CREATE_ARRAY : 3,
-    INVOKE_METHOD : 5,
-    INSTANTIATE_CLASS : 6,
-    GET_PROPERTY : 8,
-    SET_PROPERTY : 9
+    RECEIVE_FUNCTOR_CLASS_INFO : 3,
+    INVOKE_METHOD : 4,
+    INSTANTIATE_CLASS : 5,
+    GET_PROPERTY : 6,
+    SET_PROPERTY : 7
 }
 ValueTypes = {
     OBJECT : 0,
@@ -17,7 +17,8 @@ ValueTypes = {
     BOOLEAN : 5,
     UNDEFINED : 6,
     NULL : 7,
-    JAVA_OBJECT : 8
+    JAVA_OBJECT : 8,
+    FUNCTOR : 9
 }
 PropertyFlags = {
     READABLE_PROPERTY : 1,
@@ -76,21 +77,17 @@ chrome.debugger.onEvent.addListener(function(source, method, params) {
     }
 });
 function onPause(source) {
-    if (source != debuggee) {
-        resume(source);
-        return;
-    }
     var request = {
         objectId : teavmId,
         functionDeclaration : "__TeaVM_remote__.receiveMessage",
-        arguments : args,
+        arguments : [],
         returnByValue : false
     };
-    chrome.debugger.sendCommand(debuggee, "Runtime.callFunctionOn", request, function(response) {
-        if (response.result.value === null) {
-            resume(debuggee);
+    chrome.debugger.sendCommand(source, "Runtime.callFunctionOn", request, function(response) {
+        if (!response.result.objectId) {
+            resume(source);
         } else {
-            processScriptMessage(response.result, resume.bind(null, debuggee));
+            processScriptMessage(response.result, resume.bind(null, source));
         }
     });
 }
@@ -110,8 +107,8 @@ function resume(source) {
     chrome.debugger.sendCommand(source, "Debugger.resume", {});
 }
 function processScriptMessage(message, callback) {
-    getScriptProperty(instance, "type", function(value) {
-        switch (value) {
+    getScriptProperty(message, "type", function(value) {
+        switch (value.value) {
             case "invoke-method":
                 invokeProxyMethod(message, callback);
                 break;
@@ -135,7 +132,7 @@ function invokeProxyMethod(message, callback) {
         }
         var future = new Future();
         proxyFutures[messageId] = future;
-        connection.send(out.getData());
+        connection.send(output.getData());
         future.resolve(function(result) {
             sendResponseToScript(result, callback);
         });
@@ -159,7 +156,7 @@ function getProxyMethodInvocation(message, callback) {
 function extractScriptArray(array, callback) {
     getScriptProperty(array, "length", function(value) {
         var result = [];
-        var length = value;
+        var length = value.value;
         var extractElem = function(index) {
             getScriptProperty(array, index, function(value) {
                 result.push(value);
@@ -199,7 +196,10 @@ function processMessage(data, callback) {
             receiveGetPropertyMessage(input, callback);
             break;
         case EventTypes.RECEIVE_JAVA_CLASS_INFO:
-            receiveJavaClassInfo(input, callback);
+            receiveJavaClassInfo(input, false, callback);
+            break;
+        case EventTypes.RECEIVE_FUNCTOR_CLASS_INFO:
+            receiveJavaClassInfo(input, true, callback);
             break;
         case EventTypes.RECEIVE_VALUE:
             receiveValue(input, callback);
@@ -251,7 +251,7 @@ function receiveGetPropertyMessage(input, callback) {
         });
     });
 }
-function receiveJavaClassInfo(input, callback) {
+function receiveJavaClassInfo(input, functor, callback) {
     var description = { properties : {}, methods : [] };
     var classId = input.readInt();
     var propertyCount = input.readShort();
@@ -268,6 +268,7 @@ function receiveJavaClassInfo(input, callback) {
         var method = input.readUTF8();
         description.methods.push(method);
     }
+    description.functor = functor;
     console.log("Received class proxy description #%d: %O", classId, description);
     var request = {
         objectId : teavmId,
@@ -339,6 +340,7 @@ ValueReader.prototype.read = function() {
             return new Future({ value : this.input.readUTF8() });
         case ValueTypes.UNDEFINED:
             return new Future({ value : undefined });
+        
     }
 }
 ValueReader.prototype.readJavaObject = function() {
@@ -367,35 +369,35 @@ function ValueWriter(output) {
     this.output = output;
 }
 ValueWriter.prototype.write = function(value) {
-    if (value.value) {
-        if (value.value === null) {
-            this.output.writeByte(ValueTypes.NULL);
-            return;
-        }
-        switch (typeof value.value) {
-            case "boolean":
-                this.output.writeByte(ValueTypes.BOOLEAN);
-                this.output.writeByte(value ? 1 : 0);
-                break;
-            case "number":
-                if (value == (value | 0)) {
-                    this.output.writeByte(ValueTypes.INTEGER);
-                    this.output.writeInt(value);
-                } else {
-                    this.output.writeByte(ValueTypes.NUMBER);
-                    this.output.writeNumber(value);
-                }
-                break;
-            case "undefined":
-                this.output.writeByte(ValueTypes.UNDEFINED);
-                break;
-            case "string":
-                this.output.writeByte(ValueTypes.STRING);
-                this.output.writeUTF8(value);
-                break;
-        }
-    } else {
-        this.writeObject(value.objectId);
+    switch (value.type) {
+        case "boolean":
+            this.output.writeByte(ValueTypes.BOOLEAN);
+            this.output.writeByte(value.value ? 1 : 0);
+            break;
+        case "number":
+            if (value.value == (value.value | 0)) {
+                this.output.writeByte(ValueTypes.INTEGER);
+                this.output.writeInt(value.value);
+            } else {
+                this.output.writeByte(ValueTypes.NUMBER);
+                this.output.writeNumber(value.value);
+            }
+            break;
+        case "undefined":
+            this.output.writeByte(ValueTypes.UNDEFINED);
+            break;
+        case "string":
+            this.output.writeByte(ValueTypes.STRING);
+            this.output.writeUTF8(value.value);
+            break;
+        case "object":
+        case "function":
+            if (value.objectId) {
+                this.writeObject(value.objectId);
+            } else {
+                this.output.writeByte(ValueTypes.NULL);
+            }
+            break;
     }
 }
 ValueWriter.prototype.writeObject = function(objectId) {
@@ -405,7 +407,7 @@ ValueWriter.prototype.writeObject = function(objectId) {
         var localId = objectIds[objectId];
         if (localId === undefined) {
             localId = { type : "JS", id : ++objectIdGenerator };
-            objectIds[objectId] = localId.id;
+            objectIds[objectId] = localId;
             objects[localId.id] = objectId;
         }
         switch (localId.type) {
@@ -415,6 +417,11 @@ ValueWriter.prototype.writeObject = function(objectId) {
                 break;
             case "Java":
                 this.output.writeByte(ValueTypes.JAVA_OBJECT)
+                this.output.writeInt(localId.id);
+                this.output.writeInt(localId.classId);
+                break;
+            case "Functor":
+                this.output.writeByte(ValueTypes.FUNCTOR)
                 this.output.writeInt(localId.id);
                 this.output.writeInt(localId.classId);
                 break;

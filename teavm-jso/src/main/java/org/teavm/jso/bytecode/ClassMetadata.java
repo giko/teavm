@@ -25,6 +25,7 @@ import org.objectweb.asm.tree.AnnotationNode;
  */
 class ClassMetadata {
     Map<String, AnnotationNode[]> methodsAnnotations = new HashMap<>();
+    Map<String, AnnotationNode> annotations = new HashMap<>();
     boolean javaScriptObject;
 
     public AnnotationNode[] getMethodAnnotations(String name, String desc) {
@@ -33,5 +34,9 @@ class ClassMetadata {
 
     public boolean isJavaScriptObject() {
         return javaScriptObject;
+    }
+
+    public Map<String, AnnotationNode> getAnnotations() {
+        return annotations;
     }
 }

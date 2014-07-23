@@ -69,11 +69,11 @@ public class JSObjectUnwrapper implements JSRemoteValueVisitor {
 
     @Override
     public void visit(JSGlobalObject value) throws Exception {
-        result = null;
+        result = value;
     }
 
     @Override
     public void visit(JSRemoteObject value) throws Exception {
-        result = null;
+        result = value;
     }
 }

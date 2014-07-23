@@ -31,6 +31,7 @@ public class JSObjectMetadata {
     private List<JSObjectMethod> methods = new ArrayList<>();
     private List<JSObjectMethod> readonlyMethods = Collections.unmodifiableList(methods);
     int id;
+    boolean functor;
 
     static {
         jsTypeMap.put(void.class, JSType.UNDEFINED);
@@ -48,15 +49,25 @@ public class JSObjectMetadata {
         for (Class<?> iface : cls.getInterfaces()) {
             processInterface(iface, processedInterfaces);
         }
+        if (methods.size() != 1) {
+            functor = false;
+        }
     }
 
     public int getId() {
         return id;
     }
 
+    public boolean isFunctor() {
+        return functor;
+    }
+
     private void processInterface(Class<?> iface, Set<Class<?>> processedInteraces) {
         if (!processedInteraces.add(iface)) {
             return;
+        }
+        if (iface.isAnnotationPresent(JSFunctor.class)) {
+            functor = true;
         }
         for (Method method : iface.getDeclaredMethods()) {
             if (method.isAnnotationPresent(JSProperty.class)) {
@@ -109,6 +120,11 @@ public class JSObjectMetadata {
         JSObjectMember existing = members.get(member.getName());
         if (existing == null) {
             members.put(member.getName(), member);
+            if (member instanceof JSObjectProperty) {
+                properties.add((JSObjectProperty)member);
+            } else if (member instanceof JSObjectMethod) {
+                methods.add((JSObjectMethod)member);
+            }
             return;
         }
         if (existing instanceof JSObjectProperty && member instanceof JSObjectMethod) {

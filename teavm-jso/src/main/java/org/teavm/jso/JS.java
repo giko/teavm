@@ -47,11 +47,6 @@ public final class JS {
     }
 
     @InjectedBy(JSNativeGenerator.class)
-    public static <T extends JSObject> JSArray<T> createArray(int size) {
-        return JSHostAccessor.access().createArray(size);
-    }
-
-    @InjectedBy(JSNativeGenerator.class)
     public static JSObject getTypeName(JSObject obj) {
         return JSHostAccessor.access().getTypeName(obj);
     }
@@ -89,30 +84,6 @@ public final class JS {
     @InjectedBy(JSNativeGenerator.class)
     public static JSObject wrap(boolean flag) {
         return JSHostAccessor.access().wrap(flag);
-    }
-
-    public static <T extends JSObject> JSArray<T> wrap(T[] array) {
-        JSArray<T> result = createArray(array.length);
-        for (int i = 0; i < array.length; ++i) {
-            result.set(i, array[i]);
-        }
-        return result;
-    }
-
-    public static <T extends JSObject> JSArray<JSArray<T>> wrap(T[][] array) {
-        JSArray<JSArray<T>> result = createArray(array.length);
-        for (int i = 0; i < array.length; ++i) {
-            result.set(i, wrap(array[i]));
-        }
-        return result;
-    }
-
-    public static <T extends JSObject> JSArray<JSArray<JSArray<T>>> wrap(T[][][] array) {
-        JSArray<JSArray<JSArray<T>>> result = createArray(array.length);
-        for (int i = 0; i < array.length; ++i) {
-            result.set(i, wrap(array[i]));
-        }
-        return result;
     }
 
     @InjectedBy(JSNativeGenerator.class)

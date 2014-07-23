@@ -78,6 +78,13 @@ class MetadataKeeper {
         }
 
         @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            AnnotationNode node = new AnnotationNode(Opcodes.ASM4, desc);
+            classMetadata.annotations.put(desc, node);
+            return node;
+        }
+
+        @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
             return new MethodAnnotationGatheringVisitor(classMetadata, name + desc);
         }

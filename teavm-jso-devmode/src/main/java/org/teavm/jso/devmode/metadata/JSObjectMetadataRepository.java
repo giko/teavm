@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.devmode.JSDataMessageSender;
 import org.teavm.jso.devmode.JSMessageExchange;
@@ -30,6 +32,7 @@ import org.teavm.jso.devmode.JSMessageSender;
  * @author Alexey Andreev
  */
 public class JSObjectMetadataRepository {
+    private static final Logger logger = LoggerFactory.getLogger(JSObjectMetadataRepository.class);
     private ConcurrentMap<Class<?>, Integer> map = new ConcurrentHashMap<>();
     private ConcurrentMap<Integer, JSObjectMetadata> idMap = new ConcurrentHashMap<>();
     private AtomicInteger idGenerator = new AtomicInteger();
@@ -74,7 +77,11 @@ public class JSObjectMetadataRepository {
     private void sendJavaObjectInfo(JSObjectMetadata metadata) {
         try {
             JSDataMessageSender sender = new JSDataMessageSender(this.sender);
-            sender.out().write(JSMessageExchange.RECEIVE_JAVA_CLASS_INFO);
+            if (!metadata.isFunctor()) {
+                sender.out().write(JSMessageExchange.RECEIVE_JAVA_CLASS_INFO);
+            } else {
+                sender.out().write(JSMessageExchange.RECEIVE_FUNCTOR_CLASS_INFO);
+            }
             sender.out().writeInt(metadata.id);
 
             List<JSObjectProperty> properties = metadata.getProperties();
@@ -97,6 +104,10 @@ public class JSObjectMetadataRepository {
             for (JSObjectMethod method : methods) {
                 sender.out().writeUTF(method.getName());
             }
+            if (logger.isInfoEnabled()) {
+                logger.info("Sending class metadata #{}", metadata.id);
+            }
+            sender.send();
         } catch (IOException e) {
             throw new RuntimeException("Error sending class metadata to server", e);
         }

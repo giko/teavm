@@ -15,7 +15,6 @@
  */
 package org.teavm.jso.spi;
 
-import org.teavm.jso.JSArray;
 import org.teavm.jso.JSObject;
 
 /**
@@ -23,8 +22,6 @@ import org.teavm.jso.JSObject;
  * @author Alexey Andreev
  */
 public interface JSHost {
-    <T extends JSObject> JSArray<T> createArray(int size);
-
     JSObject getTypeName(JSObject obj);
 
     JSObject getGlobal();

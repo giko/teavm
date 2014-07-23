@@ -20,7 +20,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.teavm.jso.JSArray;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.devmode.values.*;
 import org.teavm.jso.spi.JSHost;
@@ -54,27 +53,6 @@ public class JSRemoteHost implements JSHost {
             throw new IllegalStateException("Exchange not set");
         }
         return new JSDataMessageSender(exchange);
-    }
-
-    @Override
-    public <T extends JSObject> JSArray<T> createArray(int size) {
-        JSDataMessageSender sender = createSender();
-        WaitingFuture response = new WaitingFuture(exchange.getEventQueue());
-        int messageId = exchange.addFuture(response);
-        try {
-            sender.out().writeByte(JSRemoteEndpoint.CREATE_ARRAY);
-            sender.out().writeInt(messageId);
-            sender.out().writeInt(size);
-            if (logger.isInfoEnabled()) {
-                logger.info("Sending command to create an array of {} elements and put it into slot #", size);
-            }
-            sender.send();
-        } catch (IOException e) {
-            throw new RuntimeException("Error creating JavaScript array", e);
-        }
-        @SuppressWarnings("unchecked")
-        JSArray<T> safeArray = (JSArray<T>)response.get();
-        return safeArray;
     }
 
     @Override
@@ -244,7 +222,7 @@ public class JSRemoteHost implements JSHost {
                     valueSender.send(arguments[i]);
                 }
                 if (logger.isInfoEnabled()) {
-                    logger.info("Sending command to call method {}.{} and put result to slot #",
+                    logger.info("Sending command to call method {}.{} and put result to slot #{}",
                             exchange.printValue(instance), exchange.printValue(method), messageId);
                 }
                 sender.send();

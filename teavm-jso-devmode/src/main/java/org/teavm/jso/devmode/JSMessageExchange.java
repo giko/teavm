@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.teavm.jso.JS;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.JSType;
 import org.teavm.jso.devmode.metadata.*;
@@ -39,11 +40,11 @@ public abstract class JSMessageExchange implements JSMessageSender {
     public static final byte RECEIVE_VALUE = 0;
     public static final byte RECEIVE_EXCEPTION = 1;
     public static final byte RECEIVE_JAVA_CLASS_INFO = 2;
-    public static final byte CREATE_ARRAY = 3;
-    public static final byte INVOKE_METHOD = 5;
-    public static final byte INSTANTIATE_CLASS = 6;
-    public static final byte GET_PROPERTY = 8;
-    public static final byte SET_PROPERTY = 9;
+    public static final byte RECEIVE_FUNCTOR_CLASS_INFO = 3;
+    public static final byte INVOKE_METHOD = 4;
+    public static final byte INSTANTIATE_CLASS = 5;
+    public static final byte GET_PROPERTY = 6;
+    public static final byte SET_PROPERTY = 7;
     public static final byte READABLE_PROPERTY = 1;
     public static final byte WRITABLE_PROPERTY = 2;
     private final AtomicInteger messageIdGenerator = new AtomicInteger();
@@ -102,6 +103,8 @@ public abstract class JSMessageExchange implements JSMessageSender {
 
     private void invokeJavaMethodAndSendResponse(final int messageId, final JSObject instance, final JSObject method,
             final JSObject[] arguments) {
+        EventQueue oldQueue = eventQueue;
+        eventQueue = new EventQueue();
         eventQueue.put(new Runnable() {
             @Override public void run() {
                 try {
@@ -122,6 +125,8 @@ public abstract class JSMessageExchange implements JSMessageSender {
                 }
             }
         });
+        eventQueue.exec();
+        eventQueue = oldQueue;
     }
 
     public JSObject invokeJavaMethod(JSObject instance, JSObject method, JSObject[] arguments) {
@@ -135,10 +140,10 @@ public abstract class JSMessageExchange implements JSMessageSender {
         JSObjectTypeExtractor typeExtractor = new JSObjectTypeExtractor();
         JSObjectUnwrapper unwrapper = new JSObjectUnwrapper();
         JSType[] argTypes = new JSType[arguments.length];
-        Object[] javaAguments = new Object[arguments.length];
+        Object[] javaArguments = new Object[arguments.length];
         for (int i = 0; i < arguments.length; ++i) {
             argTypes[i] = typeExtractor.extract(arguments[i]);
-            javaAguments[i] = unwrapper.unwrap(arguments[i]);
+            javaArguments[i] = unwrapper.unwrap(arguments[i]);
         }
         JSObjectMetadata cls = javaClasses.get(instance.getClass());
         JSObjectMember member = cls.get(methodName);
@@ -157,7 +162,15 @@ public abstract class JSMessageExchange implements JSMessageSender {
                 logger.debug("Calling {}.{}. Resolved method {}", printValue(instance), printValue(method),
                         signature.getJavaMethod());
             }
-            result = signature.getJavaMethod().invoke(instance, javaAguments);
+            Class<?>[] javaTypes = signature.getJavaMethod().getParameterTypes();
+            for (int i = 0; i < javaArguments.length; ++i) {
+                if (JSObject.class.isAssignableFrom(javaTypes[i]) && javaTypes[i].isInstance(javaArguments[i])) {
+                    @SuppressWarnings("unchecked")
+                    Class<JSObject> typeToCastTo = (Class<JSObject>)JSObject.class.asSubclass(javaTypes[i]);
+                    javaArguments[i] = JS.cast((JSObject)javaArguments[i], typeToCastTo);
+                }
+            }
+            result = signature.getJavaMethod().invoke(instance, javaArguments);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error calling Java method " + signature.getJavaMethod(), e);
         } catch (InvocationTargetException e) {

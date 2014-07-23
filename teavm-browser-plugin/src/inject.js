@@ -24,11 +24,15 @@ __TeaVM_remote__ = (function() {
     }
     function declareProxyClass(classId, description) {
         description = JSON.parse(description);
-        proxyClasses[classId] = description;
-    }
-    function createProxy(classId, proxyId) {
-        var object = new Object();
-        var description = proxyClasses[classId];
+        var proxyClass = function() {
+        };
+        if (!description.functor) {
+            proxyClass.prototype = new Object();
+        } else {
+            var method = description.methods[0];
+            proxyClass.prototype = new Function("return this." + method + ".apply(this, arguments);");
+        }
+
         for (var property in description.properties) {
             var propertyData = description.properties[property];
             var propertyDesc = {};
@@ -38,7 +42,7 @@ __TeaVM_remote__ = (function() {
                         return sendMessage({
                             type : "get-property",
                             propertyName : propertyName,
-                            instance : object
+                            instance : this
                         });
                     };
                 })(property);
@@ -50,17 +54,17 @@ __TeaVM_remote__ = (function() {
                         sendMessage({
                             type : "set-property",
                             propertyName : propertyName,
-                            instance : object,
+                            instance : this,
                             value : value
                         });
                     };
                 })(property);
             }
-            Object.defineProperty(object, property, propertyDesc);
+            Object.defineProperty(proxyClass.prototype, property, propertyDesc);
         }
         for (var i = 0; i < description.methods.length; ++i) {
             var method = description.methods[i];
-            object.method = (function(methodName) {
+            proxyClass.prototype[method] = (function(methodName) {
                 return function() {
                     var params = [];
                     for (var i = 0; i < arguments.length; ++i) {
@@ -69,13 +73,19 @@ __TeaVM_remote__ = (function() {
                     return sendMessage({
                         type : "invoke-method",
                         methodName : methodName,
-                        instance : object,
-                        params : params
+                        instance : this,
+                        args : params
                     });
                 };
             })(method);
         }
-        proxies[propxyId] = object;
+
+        console.log("%O", proxyClass);
+        proxyClasses[classId] = proxyClass;
+    }
+    function createProxy(classId, proxyId) {
+        var object = new proxyClasses[classId]();
+        proxies[proxyId] = object;
         return object;
     }
     function sendMessage(message) {
@@ -87,7 +97,7 @@ __TeaVM_remote__ = (function() {
     }
     function receiveMessage() {
         var result = sentMessage;
-        sendMessage = null;
+        sentMessage = null;
         return result;
     }
     function sendResponse(response) {
