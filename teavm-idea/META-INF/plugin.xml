@@ -1,0 +1,12 @@
+<idea-plugin version="2">
+  <id>org.teavm.idea</id>
+  <name>TeaVM support</name>
+  <version>1.0</version>
+  <!--<vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>-->
+  <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+  <idea-version since-build="131"/>
+
+  <extensions defaultExtensionNs="com.intellij">
+      <facetType implementation="org.teavm.idea.facet.TeaVMFacetType"/>
+  </extensions>
+</idea-plugin>
